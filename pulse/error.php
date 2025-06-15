@@ -11,14 +11,14 @@ $timeoutDuration = 15 * 60; // 15 minutes in seconds
 if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > $timeoutDuration) {
     session_unset(); // Unset session variables
     session_destroy(); // Destroy the session
-    header("Location: login.php?timeout=true"); // Redirect to login with timeout message
+    header("Location: login?timeout=true"); // Redirect to login with timeout message
     exit;
 }
 $_SESSION['last_activity'] = time(); // Update last activity timestamp
 
 // Check if the user is logged in
 if (!isset($_SESSION['userid'])) {
-    header("Location: login.php");
+    header("Location: login");
     exit;
 }
 

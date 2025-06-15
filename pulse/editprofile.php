@@ -74,7 +74,7 @@ if (!$access_granted) {
 if (!$access_granted) {
     session_unset();
     session_destroy();
-    header("Location: login.php");
+    header("Location: login");
     exit;
 }
 
@@ -324,14 +324,14 @@ if ($user) {
                 <p class="text-sm font-medium text-gray-800 dark:text-neutral-200"><?php echo htmlspecialchars($fullName); ?></p>
               </div>
               <div class="p-1.5 space-y-0.5">
-                <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700 dark:focus:text-neutral-300" href="profile.php">
+                <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700 dark:focus:text-neutral-300" href="profile">
                   <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="7" r="4" />
                     <path d="M4 20c0-4 4-7 8-7s8 3 8 7" />
                   </svg>
                   My Profile
                 </a>
-                <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700 dark:focus:text-neutral-300" href="changepassword.php">
+                <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700 dark:focus:text-neutral-300" href="changepassword">
                   <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" 
                      viewBox="0 0 24 24" fill="none" stroke="currentColor" 
                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -340,7 +340,7 @@ if ($user) {
                 </svg>
                   Change Password
                 </a>
-                <a href="logout.php" class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700 dark:focus:text-neutral-300">
+                <a href="logout" class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700 dark:focus:text-neutral-300">
                     <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M9 12H21" />
                         <path d="M16 6l6 6-6 6" />
@@ -417,7 +417,7 @@ if ($user) {
           <ul class="flex flex-col space-y-1">
             <li>
               <?php if (isset($_SESSION['level']) && $_SESSION['level'] === 'ADMINISTRATOR'): ?>
-              <a class="flex items-center gap-x-3.5 py-2 px-2.5 bg-gray-100 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-700 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-white" href="dashboard.php">
+              <a class="flex items-center gap-x-3.5 py-2 px-2.5 bg-gray-100 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-700 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-white" href="dashboard">
                   <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                       <polyline points="9 22 9 12 15 12 15 22" />
@@ -429,7 +429,7 @@ if ($user) {
 
             <li>
               <?php if (isset($_SESSION['level']) && $_SESSION['level'] === 'ADMINISTRATOR'): ?>
-              <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-700 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-white" href="employeelist.php">
+              <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-700 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-white" href="employeelist">
                   <svg class="size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>                        
                   Employee List
               </a>
@@ -459,17 +459,17 @@ if ($user) {
                 <div id="projects-accordion-child" class="hs-accordion-content w-full overflow-hidden transition-[height] duration-300 hidden" role="region" aria-labelledby="projects-accordion">
                   <ul class="ps-8 pt-1 space-y-1">
                     <li>
-                      <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-neutral-200" href="allleave.php">
+                      <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-neutral-200" href="allleave">
                         Employee Applications
                       </a>
                     </li>
                     <li>
-                      <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-neutral-200" href="leavecredit.php">
+                      <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-neutral-200" href="leavecredit">
                         Employee Leave Credits
                       </a>
                     </li>
                     <li> 
-                      <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-neutral-200" href="employeecreditlog.php">
+                      <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-neutral-200" href="employeecreditlog">
                         Employee Credit Logs
                       </a>
                     </li>
@@ -503,17 +503,17 @@ if ($user) {
               <div id="projects-accordion-child" class="hs-accordion-content w-full overflow-hidden transition-[height] duration-300 hidden" role="region" aria-labelledby="projects-accordion">
                 <ul class="ps-8 pt-1 space-y-1">
                   <li>
-                    <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-neutral-200" href="leaveform.php">
+                    <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-neutral-200" href="leaveform">
                       Apply Leave
                     </a>
                   </li>
                   <li>
-                    <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-neutral-200" href="myapplications.php">
+                    <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-neutral-200" href="myapplications">
                       My Applications
                     </a>
                   </li>
                   <li> 
-                    <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-neutral-200" href="creditlogs.php">
+                    <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-neutral-200" href="creditlogs">
                       Credit Logs
                     </a>
                   </li>
@@ -1233,7 +1233,7 @@ document.addEventListener('DOMContentLoaded', function () {
         panel.innerHTML = '<div class="tab-loader text-center py-8">Loading...</div>';
         // Get userid from PHP (rendered as a JS variable)
         const userid = <?= json_encode($profile_userid) ?>;
-        fetch('ajax/get_edit_tab_data.php?tab=' + tabNum + '&userid=' + encodeURIComponent(userid))
+        fetch('ajax/get_edit_tab_data?tab=' + tabNum + '&userid=' + encodeURIComponent(userid))
           .then(resp => {
             if (!resp.ok) throw new Error('Network response was not ok');
             return resp.text();
@@ -1421,7 +1421,7 @@ document.addEventListener('DOMContentLoaded', function () {
         children: children
       };
 
-      fetch('/pulse/ajax/update_profile_tab2.php', {
+      fetch('/pulse/ajax/update_profile_tab2', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(payload)
@@ -1582,7 +1582,7 @@ document.addEventListener('DOMContentLoaded', function() {
       // --- Get profile_userid from hidden field and send it in payload ---
       const profile_userid = document.getElementById('profile_userid')?.value || '';
 
-      fetch('/pulse/ajax/update_profile_tab3.php', {
+      fetch('/pulse/ajax/update_profile_tab3', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1892,7 +1892,7 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     });
 
-    fetch('ajax/update_profile_tab4.php', {
+    fetch('ajax/update_profile_tab4', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
@@ -1939,7 +1939,7 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     });
 
-    fetch('ajax/update_profile_tab4.php', {
+    fetch('ajax/update_profile_tab4', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
@@ -2095,7 +2095,7 @@ document.addEventListener('DOMContentLoaded', function() {
       // --- Get profile_userid from hidden field and send it in payload ---
       const profile_userid = document.getElementById('profile_userid')?.value || '';
 
-      fetch('/pulse/ajax/update_profile_tab5.php', {
+      fetch('/pulse/ajax/update_profile_tab5', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2262,7 +2262,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const saveBtn = document.getElementById('save-skill-btn');
       if(saveBtn) saveBtn.disabled = true;
 
-      fetch('/pulse/ajax/update_profile_tab6.php', {
+      fetch('/pulse/ajax/update_profile_tab6', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -2424,7 +2424,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Get profile_userid from hidden field
       const profile_userid = document.getElementById('profile_userid')?.value || '';
 
-      fetch('/pulse/ajax/update_profile_tab7.php', {
+      fetch('/pulse/ajax/update_profile_tab7', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2595,7 +2595,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Disable fields while saving
     setMembershipFieldsEnabled(false);
 
-      fetch('/pulse/ajax/update_profile_tab8.php', {
+      fetch('/pulse/ajax/update_profile_tab8', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2698,7 +2698,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const saveBtn = document.getElementById('save-disclosure-btn');
       if (saveBtn) saveBtn.disabled = true;
 
-      fetch('/pulse/ajax/update_profile_tab9.php', {
+      fetch('/pulse/ajax/update_profile_tab9', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(payload)
@@ -2919,7 +2919,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Disable fields while saving
       setReferenceFieldsEnabled(false);
 
-      fetch('/pulse/ajax/update_profile_tab10.php', {
+      fetch('/pulse/ajax/update_profile_tab10', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -3098,7 +3098,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Disable fields while saving
       setEmergencyFieldsEnabled(false);
 
-      fetch('/pulse/ajax/update_profile_tab11.php', {
+      fetch('/pulse/ajax/update_profile_tab11', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -3326,7 +3326,7 @@ document.addEventListener('DOMContentLoaded', function () {
       });
       const profile_userid = document.getElementById('profile_userid')?.value || '';
       setEducFieldsEnabled(false);
-      fetch('/pulse/ajax/update_profile_tab12.php', {
+      fetch('/pulse/ajax/update_profile_tab12', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

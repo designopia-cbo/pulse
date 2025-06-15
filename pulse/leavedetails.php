@@ -35,7 +35,7 @@ if (
 // Retrieve the leave ID from the URL
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     // Redirect if no valid ID is provided
-    header("Location: dashboard.php?error=invalid_id");
+    header("Location: dashboard?error=invalid_id");
     exit;
 }
 
@@ -48,7 +48,7 @@ $leaveDetails = $leaveQuery->fetch(PDO::FETCH_ASSOC);
 
 if (!$leaveDetails) {
     // Redirect if the leave request does not exist
-    header("Location: dashboard.php");
+    header("Location: dashboard");
     exit;
 }
 
@@ -69,7 +69,7 @@ if (
 if (!$canView) {
     session_unset();
     session_destroy();
-    header("Location: login.php");
+    header("Location: login");
     exit;
 }
 // ---------------------------------------------------------------------
@@ -168,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['action'])) {
         $leaveDetails = $leaveQuery->fetch(PDO::FETCH_ASSOC);
 
         if (!$leaveDetails) {
-            header("Location: dashboard.php?status=error&message=leave_request_not_found");
+            header("Location: dashboard?status=error&message=leave_request_not_found");
             exit;
         }
 
@@ -180,7 +180,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['action'])) {
                     WHERE id = :id
                 ");
                 $updateQuery->execute([':status' => $approvalStatus, ':todayDate' => $todayDate, ':id' => $requestId]);
-                header("Location: dashboard.php?status=success");
+                header("Location: dashboard?status=success");
                 exit;
             } elseif ($approvalStatus === 'DISAPPROVED') {
                 $updateQuery = $pdo->prepare("
@@ -189,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['action'])) {
                     WHERE id = :id
                 ");
                 $updateQuery->execute([':reason' => $reasonField, ':status' => $approvalStatus, ':todayDate' => $todayDate, ':id' => $requestId]);
-                header("Location: dashboard.php?status=success");
+                header("Location: dashboard?status=success");
                 exit;
             }
         } elseif ($leaveDetails['leave_status'] == 2) {
@@ -200,7 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['action'])) {
                     WHERE id = :id
                 ");
                 $updateQuery->execute([':status' => $approvalStatus, ':todayDate' => $todayDate, ':id' => $requestId]);
-                header("Location: dashboard.php?status=success");
+                header("Location: dashboard?status=success");
                 exit;
             } elseif ($approvalStatus === 'DISAPPROVED') {
                 $updateQuery = $pdo->prepare("
@@ -209,7 +209,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['action'])) {
                     WHERE id = :id
                 ");
                 $updateQuery->execute([':reason' => $reasonField, ':status' => $approvalStatus, ':todayDate' => $todayDate, ':id' => $requestId]);
-                header("Location: dashboard.php?status=success");
+                header("Location: dashboard?status=success");
                 exit;
             }
         } elseif ($leaveDetails['leave_status'] == 3) {
@@ -234,7 +234,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['action'])) {
                     $creditLeave = $creditQuery->fetch(PDO::FETCH_ASSOC);
 
                     if (!$creditLeave) {
-                        header("Location: dashboard.php?status=error&message=credit_leave_not_found");
+                        header("Location: dashboard?status=error&message=credit_leave_not_found");
                         exit;
                     }
 
@@ -279,7 +279,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['action'])) {
                     ]);
                 }
 
-                header("Location: dashboard.php?status=success");
+                header("Location: dashboard?status=success");
                 exit;
             } elseif ($approvalStatus === 'DISAPPROVED') {
                 $updateQuery = $pdo->prepare("
@@ -288,15 +288,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['action'])) {
                     WHERE id = :id
                 ");
                 $updateQuery->execute([':reason' => $reasonField, ':status' => $approvalStatus, ':todayDate' => $todayDate, ':id' => $requestId]);
-                header("Location: dashboard.php?status=success");
+                header("Location: dashboard?status=success");
                 exit;
             }
         } else {
-            header("Location: dashboard.php?status=error&message=invalid_leave_status");
+            header("Location: dashboard?status=error&message=invalid_leave_status");
             exit;
         }
     } catch (PDOException $e) {
-        header("Location: dashboard.php?status=error&message=" . urlencode($e->getMessage()));
+        header("Location: dashboard?status=error&message=" . urlencode($e->getMessage()));
         exit;
     }
 }
@@ -633,7 +633,7 @@ $dIcon = strtoupper($dRejectStatus) === "APPROVED" ? "✅" : "❌";
 <script>
 document.getElementById('transfer-to-minister-btn').addEventListener('click', function() {
     var leaveId = <?php echo json_encode($leaveId); ?>;
-    fetch('leavedetails.php', {
+    fetch('leavedetails', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'action=transfer_to_minister&leave_id=' + encodeURIComponent(leaveId)

@@ -38,15 +38,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Redirect based on the user's level
         if ($user['level'] === 'ADMINISTRATOR') {
-            header("Location: dashboard.php");
+            header("Location: dashboard");
         } else {
-            header("Location: profile.php");
+            header("Location: profile");
         }
         exit;
     } else {
         // Invalid credentials
         $_SESSION['error_message'] = "Invalid login credentials. Please try again.";
-        header("Location: login.php");
+        header("Location: login");
         exit;
     }
 }

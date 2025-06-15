@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $success_message = "Password changed successfully.";
                     echo "<script>
                         setTimeout(function() {
-                            window.location.href = 'profile.php';
+                            window.location.href = 'profile';
                         }, 2500);
                     </script>";
                 } else {

@@ -114,7 +114,7 @@ if (isset($_GET['id'])) {
 
     if (!$leaveDetails) {
         // Redirect if the leave ID is invalid
-        header("Location: myapplications.php?error=access_denied");
+        header("Location: myapplications?error=access_denied");
         exit;
     }
 
@@ -170,7 +170,7 @@ if (isset($_GET['id'])) {
 
     if (!$isAllowed) {
         // Redirect if user is not owner, HR, Supervisor, Manager, or privileged ADMINISTRATOR/AAO
-        header("Location: myapplications.php?error=access_denied");
+        header("Location: myapplications?error=access_denied");
         exit;
     }
     // -------------------------------------------------------
@@ -185,7 +185,7 @@ if (isset($_GET['id'])) {
     $isCancelable = in_array($leaveDetails['leave_status'], [1,2,3,4]);
 } else {
     // Redirect if no leave ID is provided
-    header("Location: myapplications.php?error=missing_leave_id");
+    header("Location: myapplications?error=missing_leave_id");
     exit;
 }
 
@@ -221,7 +221,7 @@ function capitalize($text) {
 
       <div class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-60 bg-white shadow-md rounded-lg mt-2 dark:bg-neutral-800 dark:border dark:border-neutral-700" role="menu" aria-orientation="vertical" aria-labelledby="hs-dropdown-custom-icon-trigger">
         <div class="p-1 space-y-0.5">
-          <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700" href="myapplications.php">
+          <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700" href="myapplications">
             My Leaves
           </a>
           <a
@@ -452,7 +452,7 @@ function capitalize($text) {
 
             <!-- Dropdown and Textarea -->
             <div class="mt-5 flex flex-col gap-y-4">
-                <button type="button" id="back-btn" class="w-full py-3 px-4 rounded-lg bg-gray-400 text-white text-sm font-medium hover:bg-gray-500 focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50" onclick="window.location.href='myapplications.php'">
+                <button type="button" id="back-btn" class="w-full py-3 px-4 rounded-lg bg-gray-400 text-white text-sm font-medium hover:bg-gray-500 focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50" onclick="window.location.href='myapplications'">
                     Back
                 </button>
             </div>
@@ -491,7 +491,7 @@ document.addEventListener('DOMContentLoaded', function() {
       .then(response => response.json())
       .then(data => {
         if (data.success) {
-          window.location.href = 'myapplications.php';
+          window.location.href = 'myapplications';
         } else {
           modalCancelBtn.disabled = false;
           alert(data.error || 'Failed to cancel leave. Please try again.');

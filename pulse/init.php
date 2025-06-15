@@ -29,7 +29,7 @@ if (!isset($_SESSION['user_agent'])) {
     ) {
         session_unset();
         session_destroy();
-        header("Location: login.php?security=agent_ip_mismatch");
+        header("Location: login?security=agent_ip_mismatch");
         exit;
     }
 }
@@ -39,14 +39,14 @@ $timeoutDuration = 15 * 60; // 15 minutes in seconds
 if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > $timeoutDuration) {
     session_unset();
     session_destroy();
-    header("Location: login.php?timeout=true");
+    header("Location: login?timeout=true");
     exit;
 }
 $_SESSION['last_activity'] = time(); // Update last activity timestamp
 
 // Check if the user is logged in
 if (!isset($_SESSION['userid'])) {
-    header("Location: login.php");
+    header("Location: login");
     exit;
 }
 

@@ -229,7 +229,7 @@ document.addEventListener("DOMContentLoaded", function () {
             .then((data) => {
                 if (data.status === "success") {
                     alert(data.message); // Show success message
-                    window.location.href = "myapplications.php"; // Redirect to myapplications.php
+                    window.location.href = "myapplications"; // Redirect to myapplications
                 } else {
                     alert(data.message); // Show error message
                 }

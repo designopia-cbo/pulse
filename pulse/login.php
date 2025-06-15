@@ -43,7 +43,7 @@ unset($_SESSION['error_message']); // Clear error message
     </div>
 
     <div class="mt-5">
-        <form action="login_process.php" method="POST" id="loginForm">
+        <form action="login_process" method="POST" id="loginForm">
             <!-- CSRF Token -->
             <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
 
@@ -97,7 +97,7 @@ unset($_SESSION['error_message']); // Clear error message
 
                 <!-- Forgot Password Link -->
                 <div class="flex justify-end">
-                    <a href="forgot_password.php" class="text-sm text-blue-600 hover:underline dark:text-blue-500">
+                    <a href="#" class="text-sm text-blue-600 hover:underline dark:text-blue-500">
                         Forgot Password?
                     </a>
                 </div>
