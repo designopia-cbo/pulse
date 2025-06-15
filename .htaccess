@@ -1,33 +1,54 @@
+# ------------------------
 # SECURITY HEADERS
+# ------------------------
 Header always set X-Frame-Options "SAMEORIGIN"
 Header always set X-XSS-Protection "1; mode=block"
 Header always set X-Content-Type-Options "nosniff"
 Header always set Referrer-Policy "strict-origin-when-cross-origin"
 Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
 
-# Prevent directory listing
+# Content Security Policy (CSP) for your CDNs and scripts
+Header set Content-Security-Policy "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://preline.co; font-src 'self' https://preline.co; img-src 'self' data:; connect-src 'self'; frame-src 'none';"
+
+# ------------------------
+# PREVENT DIRECTORY LISTING
+# ------------------------
 Options -Indexes
 
-# Block access to .env, .git, config, and other sensitive files
-<FilesMatch "\.(env|git|htaccess|htpasswd|ini|phps|fla|psd|log|sh|bak)$">
+# ------------------------
+# BLOCK SENSITIVE FILES & BACKUPS
+# ------------------------
+<FilesMatch "(^\.|\.env|\.git|\.htaccess|\.htpasswd|\.ini|\.phps|\.fla|\.psd|\.log|\.sh|\.bak|\.old|\.swp|~)$">
     Order allow,deny
     Deny from all
 </FilesMatch>
 
-# Remove .php extension from URL
+# ------------------------
+# PREVENT EXECUTION OF SENSITIVE FILES
+# ------------------------
+AddType text/plain .phps .phtml .php3 .php4 .php5 .php7
+
+# ------------------------
+# CLEAN URL HANDLING (EXTENSIONLESS PHP)
+# ------------------------
 RewriteEngine On
 
-# Redirect direct .php requests to extensionless URLs
-RewriteCond %{THE_REQUEST} ^[A-Z]{3,}\s([^.]+)\.php [NC]
+# Redirect direct .php requests to extensionless URLs (SEO-friendly)
+RewriteCond %{THE_REQUEST} ^[A-Z]{3,}\s([^\s]+)\.php [NC]
 RewriteRule ^ %1 [R=301,L]
 
 # Internally rewrite extensionless URLs to .php (handles subdirectories)
 RewriteCond %{REQUEST_FILENAME}.php -f
 RewriteRule ^(.+?)/?$ $1.php [L]
 
-# Optional: Force HTTPS (uncomment if you have SSL)
+# ------------------------
+# FORCE HTTPS (UNCOMMENT IF SSL IS ENABLED)
+# ------------------------
 # RewriteCond %{HTTPS} off
+# RewriteCond %{HTTP:X-Forwarded-Proto} !https
 # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-# Block access to hidden files and directories (starting with .)
+# ------------------------
+# BLOCK ACCESS TO HIDDEN FILES & DIRECTORIES (STARTING WITH .)
+# ------------------------
 RewriteRule "(^|/)\." - [F]
