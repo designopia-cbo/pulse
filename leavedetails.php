@@ -250,6 +250,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['action'])) {
                     $changedAmount = $leaveDetails['total_leave_days'];
                     $newBalance = $previousBalance - $changedAmount;
 
+                    // Log current balances to balance_log before leave_credit_log entry
+                    $insertBalanceLogQuery = $pdo->prepare("
+                        INSERT INTO balance_log (vl, sl, leave_id)
+                        VALUES (:vl, :sl, :leave_id)
+                    ");
+                    $insertBalanceLogQuery->execute([
+                        ':vl' => $creditLeave['vacationleave'],
+                        ':sl' => $creditLeave['sickleave'],
+                        ':leave_id' => $requestId
+                    ]);
+
                     $insertLogQuery = $pdo->prepare("
                         INSERT INTO leave_credit_log (userid, leave_type, change_type, previous_balance, changed_amount, new_balance, change_date, leave_id)
                         VALUES (:userid, :leave_type, 'DEDUCTION', :previous_balance, :changed_amount, :new_balance, :change_date, :leave_id)

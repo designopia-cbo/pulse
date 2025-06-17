@@ -457,29 +457,45 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
                       
                       <div class="hs-dropdown relative inline-flex">
                         <?php
-                        $isDownloadable = ($application['leave_status'] == 4);
+                          $isAdminHR = (
+                            isset($_SESSION['level'], $_SESSION['category']) &&
+                            $_SESSION['level'] === 'ADMINISTRATOR' &&
+                            $_SESSION['category'] === 'HR'
+                          );
+                          $isDownloadable = ($application['leave_status'] == 4);
                         ?>
-                        <button
-                          type="button"
-                          class="flex justify-center items-center size-9 text-sm font-semibold rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-none focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-800 dark:focus:bg-neutral-800"
-                          onclick="window.open('generate_leave_form.php?id=<?= htmlspecialchars($application['id']) ?>', '_blank');"
-                          title="Download PDF"
-                          <?= !$isDownloadable ? 'disabled aria-disabled="true"' : '' ?>
-                        >
-                          <svg class="flex-none size-4 text-gray-600 dark:text-neutral-500"
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round">
-                            <path d="M4 20h16M12 3v12m0 0l-6-6m6 6l6-6" />
-                          </svg>
-                        </button>                        
-                    </div>
+                        <?php if ($isAdminHR): ?>
+                          <button
+                            type="button"
+                            class="flex justify-center items-center size-9 text-sm font-semibold rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-none focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-800 dark:focus:bg-neutral-800"
+                            onclick="window.open('generate_leave_form.php?id=<?= htmlspecialchars($application['id']) ?>', '_blank');"
+                            title="Download PDF"
+                            <?= !$isDownloadable ? 'disabled aria-disabled="true"' : '' ?>
+                          >
+                            <svg class="flex-none size-4 text-gray-600 dark:text-neutral-500"
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="24"
+                              height="24"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round">
+                              <path d="M4 20h16M12 3v12m0 0l-6-6m6 6l6-6" />
+                            </svg>
+                          </button>
+                        <?php else: ?>
+                          <!-- Invisible placeholder for consistent sizing -->
+                          <button
+                            type="button"
+                            class="flex justify-center items-center size-9 text-sm font-semibold rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs"
+                            tabindex="-1"
+                            aria-hidden="true"
+                            style="visibility:hidden;"
+                          ></button>
+                        <?php endif; ?>
+                      </div>
                   </div>
                   
                 </div>

@@ -582,9 +582,16 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
                       href="viewleave?id=<?= htmlspecialchars($leave['id']) ?>">
                       View
                     </a>
-
-                    <div class="hs-dropdown relative inline-flex">
-                      <?php $isDownloadable = ($leave['leave_status'] == 4); ?>
+                    <?php
+                      $isAdminHR = (
+                        isset($_SESSION['level'], $_SESSION['category']) &&
+                        $_SESSION['level'] === 'ADMINISTRATOR' &&
+                        $_SESSION['category'] === 'HR'
+                      );
+                      $isDownloadable = ($leave['leave_status'] == 4);
+                    ?>
+                    <?php if ($isAdminHR): ?>
+                      <div class="hs-dropdown relative inline-flex">
                         <button
                           type="button"
                           class="flex justify-center items-center size-9 text-sm font-semibold rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-none focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-800 dark:focus:bg-neutral-800"
@@ -605,7 +612,18 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
                             <path d="M4 20h16M12 3v12m0 0l-6-6m6 6l6-6" />
                           </svg>
                         </button>
-                    </div>
+                      </div>
+                    <?php else: ?>
+                      <!-- Invisible placeholder for consistent sizing -->
+                      <div class="hs-dropdown relative inline-flex" style="visibility:hidden;">
+                        <button
+                          type="button"
+                          class="flex justify-center items-center size-9 text-sm font-semibold rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs"
+                          tabindex="-1"
+                          aria-hidden="true"
+                        ></button>
+                      </div>
+                    <?php endif; ?>
                   </div>
                 </td>
               </tr>
