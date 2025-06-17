@@ -36,7 +36,6 @@ if ($user) {
   $initial = "U";
 }
 
-
 // Fetch user's office (for AAO/office-based filtering)
 $userOffice = null;
 $stmtOffice = $pdo->prepare("SELECT office FROM plantilla_position WHERE userid = :userid LIMIT 1");
@@ -47,8 +46,18 @@ if ($rowOffice && isset($rowOffice['office'])) {
   $userOffice = $rowOffice['office'];
 }
 
-// --- SEARCH LOGIC ---
+// --- SEARCH + STATUS FILTER LOGIC ---
 $search = isset($_GET['q']) ? trim($_GET['q']) : '';
+$statusFilter = isset($_GET['status']) ? trim($_GET['status']) : 'all';
+
+// Map status string to DB values
+$statusMap = [
+  'all' => null,
+  'approved' => [4],
+  'pending' => [1,2,3],
+  'rejected' => [5],
+  'cancelled' => [6],
+];
 
 // Pagination
 $page = isset($_GET['page']) && is_numeric($_GET['page']) && $_GET['page'] > 0 ? (int)$_GET['page'] : 1;
@@ -64,6 +73,22 @@ if ($search !== '') {
   $where[] = "(employee.fullname LIKE :search OR emp_leave.leave_type LIKE :search)";
   $params[':search'] = '%' . $search . '%';
 }
+
+// Add status filter if not 'all'
+if ($statusFilter !== 'all' && isset($statusMap[$statusFilter])) {
+  $statuses = $statusMap[$statusFilter];
+  // Support multiple status values (e.g., pending)
+  if (is_array($statuses)) {
+    $placeholder = [];
+    foreach ($statuses as $i => $stat) {
+      $ph = ":status" . $i;
+      $placeholder[] = $ph;
+      $params[$ph] = $stat;
+    }
+    $where[] = "emp_leave.leave_status IN (" . implode(",", $placeholder) . ")";
+  }
+}
+
 $whereSql = '';
 if (count($where) > 0) {
   $whereSql = "WHERE " . implode(' AND ', $where);
@@ -171,7 +196,6 @@ function getStatusDetails($status) {
   }
 }
 
-// Corrected: use 'appdate' as the source for application date
 function getApplicationDate($leave) {
   if (!empty($leave['appdate'])) {
     return date('M d, Y', strtotime($leave['appdate']));
@@ -183,6 +207,18 @@ function getApplicationDate($leave) {
     }
   }
   return '';
+}
+
+// Helper for filter dropdown status label
+function getStatusLabel($status) {
+  switch ($status) {
+    case 'all': return 'All';
+    case 'approved': return 'Approved';
+    case 'pending': return 'Pending';
+    case 'rejected': return 'Rejected';
+    case 'cancelled': return 'Cancelled';
+    default: return 'All';
+  }
 }
 ?>
 
@@ -477,36 +513,78 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
           </div>
           <div>
             <div class="inline-flex gap-x-2">
-              <a class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none focus:outline-hidden focus:bg-gray-50 dark:bg-transparent dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:focus:bg-neutral-800" href="#">
-                View all
-              </a>
+              
             </div>
           </div>
         </div>
         <!-- End Header -->
 
-        <!-- Search Box -->
+        <!-- Filter and Search Row -->
         <div class="px-6 py-4 border-b border-gray-200 dark:border-neutral-700">
-          <div class="relative max-w-xs">
-            <form method="get" action="">
-              <label for="employee-search" class="sr-only">Search</label>
-              <input type="text" name="q" id="employee-search"
-                class="py-1.5 sm:py-2 px-3 ps-9 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-                placeholder="Search for employees"
-                value="<?= htmlspecialchars($search) ?>">
-            </form>
-            <div class="absolute inset-y-0 start-0 flex items-center pointer-events-none ps-3">
-              <svg class="size-4 text-gray-400 dark:text-neutral-500" xmlns="http://www.w3.org/2000/svg"
-                width="24" height="24" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"></circle>
-                <path d="m21 21-4.3-4.3"></path>
-              </svg>
+          <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+            <div class="flex flex-row items-center gap-2 w-full">
+              <!-- Search (left) -->
+              <div class="relative flex-1 max-w-xs">
+                <form method="get" action="">
+                  <input type="hidden" name="status" value="<?= htmlspecialchars($statusFilter) ?>">
+                  <label for="employee-search" class="sr-only">Search</label>
+                  <input type="text" name="q" id="employee-search"
+                    class="h-9 px-3 ps-9 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                    placeholder="Search for employees"
+                    value="<?= htmlspecialchars($search) ?>">
+                </form>
+                <div class="absolute inset-y-0 start-0 flex items-center pointer-events-none ps-3">
+                  <svg class="size-4 text-gray-400 dark:text-neutral-500" xmlns="http://www.w3.org/2000/svg"
+                    width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.3-4.3"></path>
+                  </svg>
+                </div>
+              </div>
+              <!-- Dropdown (beside search) -->
+              <div>
+                <div class="hs-dropdown relative inline-flex">
+                  <button id="hs-dropdown-custom-icon-trigger" type="button"
+                    class="hs-dropdown-toggle flex justify-center items-center size-9 text-sm font-semibold rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-800 dark:focus:bg-neutral-800"
+                    aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                    <svg class="flex-none size-4 text-gray-600 dark:text-neutral-500" xmlns="http://www.w3.org/2000/svg"
+                      width="24" height="24" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="3 4 21 4 14 14 14 20 10 20 10 14 3 4"/>
+                    </svg>
+                  </button>
+                  <div class="hs-dropdown-menu min-w-60 transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden bg-white shadow-md rounded-lg mt-2 dark:bg-neutral-800 dark:border dark:border-neutral-700" role="menu" aria-orientation="vertical" aria-labelledby="hs-dropdown-custom-icon-trigger">
+                    <div class="p-1 space-y-0.5">
+                      <?php
+                        $statusOptions = [
+                          'all' => 'All',
+                          'approved' => 'Approved',
+                          'pending' => 'Pending',
+                          'rejected' => 'Rejected',
+                          'cancelled' => 'Cancelled'
+                        ];
+                        foreach ($statusOptions as $key => $label):
+                          $query = '?status=' . urlencode($key);
+                          if ($search !== '') $query .= '&q=' . urlencode($search);
+                      ?>
+                      <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700 <?= $statusFilter === $key ? 'font-semibold text-blue-600 dark:text-blue-400' : '' ?>"
+                         href="<?= $query ?>" role="menuitem">
+                        <?= $label ?>
+                        <?php if ($statusFilter === $key): ?>
+                          <svg class="ml-auto size-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+                        <?php endif; ?>
+                      </a>
+                      <?php endforeach; ?>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-        <!-- End Search Box -->
+        <!-- End Filter and Search Row -->
 
         <!-- Start Table -->
         <table class="min-w-full table-fixed divide-y divide-gray-200 dark:divide-neutral-700">
