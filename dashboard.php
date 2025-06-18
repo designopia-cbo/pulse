@@ -549,7 +549,7 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
       <div class="flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl dark:bg-neutral-900 dark:border-neutral-800 p-4 md:p-5 min-h-[100px]"><div class="px-2 pb-2">
             <div class="pb-2 flex justify-between items-center">
                 <p class="text-xs uppercase text-gray-500 dark:text-neutral-500">
-                  Total Employee
+                  Gender Distribution
                 </p>
                 <h4 class="text-lg font-semibold leading-tight text-gray-800 dark:text-neutral-200">
                   <?php echo $totalActive; ?>
@@ -634,15 +634,60 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
       </div>
       <!-- End Card --> 
 
-      <!-- Empty Card -->
+      <!-- Main Card -->
       <div class="flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl dark:bg-neutral-900 dark:border-neutral-800">
         <div class="p-4 md:p-5 flex flex-col gap-y-4">
           
-        </div>
-      </div>
-      <!-- End Empty Card --> 
+          <!-- Grid to contain the inner cards -->
+          <div class="grid sm:grid-cols-2 gap-4 sm:gap-4">
+            
+            <!-- Card 1 -->
+            <div class="flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl dark:bg-neutral-900 dark:border-neutral-800">
+              <div class="p-4 md:p-5 flex justify-between gap-x-3">
+                <div>
+                  <p class="text-xs uppercase text-gray-500 dark:text-neutral-500">Vacant positions</p>
+                  <div class="mt-1 flex items-center gap-x-2">
+                    <h3 class="mt-1 text-xl font-medium text-gray-800 dark:text-neutral-200"><?php echo $vacantPlantilla; ?></h3>
+                  </div>
+                </div>
+              </div>
+              <a class="py-3 px-4 md:px-5 inline-flex justify-between items-center text-sm text-gray-600 border-t border-gray-200 hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 rounded-b-xl dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:focus:bg-neutral-800" href="addemployee">
+                Add new employee
+                <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" 
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" 
+                stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/>
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+              </a>
+            </div>
+            
+            <!-- Card 2 -->
+            <div class="flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl dark:bg-neutral-900 dark:border-neutral-800">
+              <div class="p-4 md:p-5 flex justify-between gap-x-3">
+                <div>
+                  <p class="text-xs uppercase text-gray-500 dark:text-neutral-500">Total Plantilla</p>
+                  <div class="mt-1 flex items-center gap-x-2">
+                    <h3 class="mt-1 text-xl font-medium text-gray-800 dark:text-neutral-200"><?php echo $totalPlantilla; ?></h3>
+                  </div>
+                </div>
+              </div>
+              <a class="py-3 px-4 md:px-5 inline-flex justify-between items-center text-sm text-gray-600 border-t border-gray-200 hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 rounded-b-xl dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:focus:bg-neutral-800" href="addplantilla">
+                Add new plantilla
+                <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" 
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" 
+                stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/>
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+              </a>
+            </div>
 
-      
+          </div>
+
+        </div>
+      </div>     
+      <!-- End Main Card -->  
 
     </div>
     <!-- End Grid -->

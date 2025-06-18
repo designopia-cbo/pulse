@@ -2,6 +2,17 @@
 require_once('init.php');
 require __DIR__ . '/vendor/autoload.php';
 
+// Only allow ADMINISTRATOR level or HR category, else force logout.
+$level = strtoupper(trim($_SESSION['level'] ?? ''));
+$category = strtoupper(trim($_SESSION['category'] ?? ''));
+
+if ($level !== 'ADMINISTRATOR' || $category !== 'HR') {
+    session_unset();
+    session_destroy();
+    header("Location: logout.php");
+    exit;
+}
+
 use setasign\Fpdi\Fpdi;
 
 // 1. Fetch all data from the database
@@ -77,6 +88,14 @@ if ($leave_type == "VACATION LEAVE" && $leave_credit_log) {
     $s_new_total = $balance_log['sl'] ?? 0;
 }
 
+// ==== FORMAT leave balances to 0.000 ====
+$v_current_total = number_format((float)$v_current_total, 3, '.', '');
+$v_less         = number_format((float)$v_less, 3, '.', '');
+$v_new_total    = number_format((float)$v_new_total, 3, '.', '');
+$s_current_total = number_format((float)$s_current_total, 3, '.', '');
+$s_less         = number_format((float)$s_less, 3, '.', '');
+$s_new_total    = number_format((float)$s_new_total, 3, '.', '');
+
 // Utility function to format employee name
 function format_employee_name($emp) {
     if (!$emp) return '';
@@ -103,6 +122,15 @@ function insert_signature($pdf, $id, $x, $y, $w = 40, $h = 15) {
     if ($id && file_exists($sig_path)) {
         $pdf->Image($sig_path, $x, $y, $w, $h);
     }
+}
+
+// Helper to right-align text in a cell
+function right_align_text($pdf, $text, $y, $col_x, $col_width, $font='Arial', $style='', $size=7, $height=8) {
+    $pdf->SetFont($font, $style, $size);
+    $text_width = $pdf->GetStringWidth($text);
+    $x = $col_x + ($col_width - $text_width);
+    $pdf->SetXY($x, $y);
+    $pdf->Write($height, $text);
 }
 
 // HR name
@@ -317,18 +345,22 @@ $pdf->Write(8, $manager_note);
 // Example coordinates -- adjust to your template!
 $pdf->SetFont('Arial', '', 7);
 // "AS OF" date (top right of balance table)
-$pdf->SetXY(58, 209.4); // adjust as needed for your template
+$pdf->SetXY(58, 209.4); // adjust as needed for your PDF
 $pdf->Write(8, $asof_date);
 
-// Vacation Leave row
-$pdf->SetXY(58, 219.8); $pdf->Write(8, $v_current_total);
-$pdf->SetXY(58, 223); $pdf->Write(8, $v_less);
-$pdf->SetXY(58, 227); $pdf->Write(8, $v_new_total);
+// Vacation Leave and Sick Leave columns' X and width (adjust widths as needed)
+$vl_x = 29; $vl_width = 35;
+$sl_x = 68; $sl_width = 35;
 
-// Sick Leave row
-$pdf->SetXY(100, 219.8); $pdf->Write(8, $s_current_total);
-$pdf->SetXY(100, 223); $pdf->Write(8, $s_less);
-$pdf->SetXY(100, 227); $pdf->Write(8, $s_new_total);
+// Vacation Leave row (right aligned)
+right_align_text($pdf, $v_current_total, 219.8, $vl_x, $vl_width);
+right_align_text($pdf, $v_less,         223,   $vl_x, $vl_width);
+right_align_text($pdf, $v_new_total,    227,   $vl_x, $vl_width);
+
+// Sick Leave row (right aligned)
+right_align_text($pdf, $s_current_total, 219.8, $sl_x, $sl_width);
+right_align_text($pdf, $s_less,          223,   $sl_x, $sl_width);
+right_align_text($pdf, $s_new_total,     227,   $sl_x, $sl_width);
 
 $pdf->Output('I', 'leave_filled.pdf');
 exit;
