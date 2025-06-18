@@ -418,6 +418,13 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
               List of vacation, sick, and special leave credits per employee.
             </p>
           </div>
+         <div>
+                <div class="inline-flex gap-x-2">
+                  <a class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none focus:outline-hidden focus:bg-gray-50 dark:bg-transparent dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:focus:bg-neutral-800" href="#">
+                    View all
+                  </a>
+                </div>
+              </div>
         </div>
         <!-- End Header -->
 
