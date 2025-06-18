@@ -121,12 +121,62 @@ foreach ($allCredits as $credit) {
   // Otherwise, don't include
 }
 
+// Prepare exportCredits before pagination
+$exportCredits = $credits;
+
 // Fix pagination based on filtered credits
 $totalRows = count($credits);
 $totalPages = max(1, ceil($totalRows / $perPage));
-// Only show the "current page" filtered credits
 $credits = array_slice($credits, $offset, $perPage);
 
+// Excel export logic (exports all filtered rows, not just current page)
+if (isset($_GET['export']) && $_GET['export'] === 'excel') {
+    header("Content-Type: application/vnd.ms-excel");
+    header("Content-Disposition: attachment; filename=leave_credits_" . date('Ymd_His') . ".xls");
+    // Style the table to use Calibri 11
+    echo "
+    <style>
+      table, th, td {
+        font-family: Calibri, Arial, sans-serif;
+        font-size: 11pt;
+      }
+    </style>
+    ";
+    echo "<table border='1'>";
+    echo "<tr>
+            <th>User ID</th>
+            <th>Employee Name</th>
+            <th>Position Title</th>
+            <th>Vacation Leave</th>
+            <th>Sick Leave</th>
+            <th>VL Tardiness</th>
+            <th>SL Tardiness</th>
+          </tr>";
+
+    foreach ($exportCredits as $credit) {
+        $userid = htmlspecialchars($credit['userid']);
+        $fullName = ucwords(strtolower($credit['fullname']));
+        $position = $credit['position_title'];
+        $vacationleave = $credit['vacationleave'] !== null ? $credit['vacationleave'] : 0;
+        $sickleave = $credit['sickleave'] !== null ? $credit['sickleave'] : 0;
+
+        // Both VL Tardiness and SL Tardiness columns are always 0 for export template
+        $vlTardiness = 0;
+        $slTardiness = 0;
+
+        echo "<tr>
+                <td>{$userid}</td>
+                <td>{$fullName}</td>
+                <td>{$position}</td>
+                <td>{$vacationleave}</td>
+                <td>{$sickleave}</td>
+                <td>{$vlTardiness}</td>
+                <td>{$slTardiness}</td>
+              </tr>";
+    }
+    echo "</table>";
+    exit;
+}
 ?>
 
 <!DOCTYPE html>
@@ -415,16 +465,34 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
               Employee Leave Credits
             </h2>
             <p class="text-sm text-gray-600 dark:text-neutral-400">
-              List of vacation, sick, and special leave credits per employee.
+              List of vacation and sick leave credits per employee.
             </p>
           </div>
-         <div>
-                <div class="inline-flex gap-x-2">
-                  <a class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none focus:outline-hidden focus:bg-gray-50 dark:bg-transparent dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:focus:bg-neutral-800" href="#">
-                    View all
-                  </a>
-                </div>
-              </div>
+          <div>
+            <div class="inline-flex gap-x-2">
+              <?php if (
+                  isset($_SESSION['level']) && $_SESSION['level'] === 'ADMINISTRATOR' &&
+                  isset($_SESSION['category']) && $_SESSION['category'] === 'HR'
+              ): ?>
+              <a class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none focus:outline-hidden focus:bg-gray-50 dark:bg-transparent dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:focus:bg-neutral-800"
+                 href="?export=excel<?= $search !== '' ? '&q=' . urlencode($search) : '' ?>">
+                  .XLS
+                  <svg class="flex-none size-4 text-gray-600 dark:text-neutral-500"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round">
+                            <path d="M4 20h16M12 3v12m0 0l-6-6m6 6l6-6" />
+                          </svg>
+              </a>
+              <?php endif; ?>
+            </div>
+          </div>
         </div>
         <!-- End Header -->
 

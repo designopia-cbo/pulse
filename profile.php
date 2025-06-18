@@ -622,10 +622,10 @@ if ($user) {
         <!-- Modal -->
         <div id="hs-medium-modal" class="hs-overlay hidden size-full fixed top-0 start-0 z-80 overflow-x-hidden overflow-y-auto pointer-events-none" role="dialog" tabindex="-1" aria-labelledby="hs-medium-modal-label">
           <div class="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all md:max-w-2xl md:w-full m-3 md:mx-auto">
-            <div class="flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl pointer-events-auto dark:bg-neutral-800 dark:border-neutral-700 dark:shadow-neutral-700/70">
+            <form class="flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl pointer-events-auto dark:bg-neutral-800 dark:border-neutral-700 dark:shadow-neutral-700/70">
               <div class="flex justify-between items-center py-3 px-4 border-b border-gray-200 dark:border-neutral-700">
                 <h3 id="hs-medium-modal-label" class="font-bold text-gray-800 dark:text-white">
-                  Modal title
+                  Effective Dates
                 </h3>
                 <button type="button" class="size-8 inline-flex justify-center items-center gap-x-2 rounded-full border border-transparent bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-hidden focus:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-neutral-400 dark:focus:bg-neutral-600" aria-label="Close" data-hs-overlay="#hs-medium-modal">
                   <span class="sr-only">Close</span>
@@ -636,19 +636,52 @@ if ($user) {
                 </button>
               </div>
               <div class="p-4 overflow-y-auto">
-                <p class="mt-1 text-gray-800 dark:text-neutral-400">
-                  This is a wider card with supporting text below as a natural lead-in to additional content.
-                </p>
+                <!-- Date Fields in Two Columns Per Row -->
+                <div class="py-6 border-t border-gray-200 dark:border-neutral-700">
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label for="billing-date-start" class="inline-block text-sm font-normal dark:text-white">
+                        Date of Assumption
+                      </label>
+                      <input id="billing-date-start" type="date" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400">
+                    </div>
+                    <div>
+                      <label for="billing-date-end" class="inline-block text-sm font-normal dark:text-white">
+                        Date of Appointment
+                      </label>
+                      <input id="billing-date-end" type="date" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="py-6 border-t border-gray-200 dark:border-neutral-700">
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label for="address-date-start" class="inline-block text-sm font-normal dark:text-white">
+                        Date of Assumption
+                      </label>
+                      <input id="address-date-start" type="date" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400">
+                    </div>
+                    <div>
+                      <label for="address-date-end" class="inline-block text-sm font-normal dark:text-white">
+                        Date of Appointment
+                      </label>
+                      <input id="address-date-end" type="date" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400">
+                    </div>
+                  </div>
+                </div>
               </div>
+
+              <!-- Action Buttons -->
               <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t border-gray-200 dark:border-neutral-700">
-                <button type="button" class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-700 dark:focus:bg-neutral-700" data-hs-overlay="#hs-medium-modal">
-                  Close
+                <button type="button" class="py-1.5 sm:py-2 px-3 inline-flex items-center text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 dark:bg-neutral-800 dark:border-neutral-700 dark:text-white">
+                  Cancel
                 </button>
-                <button type="button" class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-hidden focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none">
-                  Save changes
+                <button type="submit" class="py-1.5 sm:py-2 px-3 inline-flex items-center text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white dark:bg-blue-700">
+                  Update Details
                 </button>
               </div>
-            </div>
+            </form>
           </div>
         </div>
         <!-- End Modal -->

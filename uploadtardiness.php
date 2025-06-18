@@ -1,6 +1,9 @@
 <?php
 require_once('init.php');
 
+// Suppress DOMDocument HTML parsing warnings from PhpSpreadsheet
+libxml_use_internal_errors(true);
+
 // Restrict access: Only ADMINISTRATOR level and HR category
 if (
     !isset($_SESSION['level']) || $_SESSION['level'] !== 'ADMINISTRATOR' ||
@@ -21,89 +24,164 @@ $stmt->execute();
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if ($user) {
-  $fullName = ucwords(strtolower($user['fullname']));
-  $initial = strtoupper(substr($fullName, 0, 1));
+    $fullName = ucwords(strtolower($user['fullname']));
+    $initial = strtoupper(substr($fullName, 0, 1));
 } else {
-  $fullName = "Unknown User";
-  $initial = "U";
+    $fullName = "Unknown User";
+    $initial = "U";
 }
 
-// Fetch unique, uppercase values for dropdowns
-function fetchUniqueDropdownValues($pdo, $column) {
-    $stmt = $pdo->prepare("SELECT DISTINCT UPPER($column) AS val FROM plantilla_position WHERE $column IS NOT NULL AND $column != ''");
-    $stmt->execute();
-    $results = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
-    sort($results, SORT_STRING);
-    return $results;
+// Reset session flag on every GET request (prevents blocking new POSTs)
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    $_SESSION['tardiness_upload_done'] = false;
 }
 
-$org_units = fetchUniqueDropdownValues($pdo, 'org_unit');
-$offices = fetchUniqueDropdownValues($pdo, 'office');
-$cost_structures = fetchUniqueDropdownValues($pdo, 'cost_structure');
+// Handle form POST and file upload
+$success = [];
+$errors = [];
 
-// Form submission handler
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    try {
-        // Helper: convert to uppercase and trim
-        function to_upper($val) { return mb_strtoupper(trim($val), 'UTF-8'); }
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['tardiness_file']) && isset($_POST['privacy_check'])) {
+    // Only process if not already done in this POST session
+    if (!isset($_SESSION['tardiness_upload_done']) || $_SESSION['tardiness_upload_done'] === false) {
+        $file = $_FILES['tardiness_file'];
+        if ($file['error'] === 0) {
+            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            if (in_array($ext, ['csv', 'xls', 'xlsx'])) {
+                $filename = $file['tmp_name'];
+                $rows = [];
+                if ($ext === 'csv') {
+                    if (($handle = fopen($filename, "r")) !== false) {
+                        while (($data = fgetcsv($handle)) !== false) {
+                            $rows[] = $data;
+                        }
+                        fclose($handle);
+                    }
+                } else {
+                    // Use PhpSpreadsheet for xls/xlsx
+                    require_once __DIR__ . '/vendor/autoload.php';
+                    $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filename);
+                    $worksheet = $spreadsheet->getActiveSheet();
+                    foreach ($worksheet->toArray() as $row) {
+                        $rows[] = $row;
+                    }
+                }
 
-        $item_number = to_upper($_POST['item_number'] ?? '');
-        $position_title = to_upper($_POST['position_title'] ?? '');
-        $salary_grade = to_upper($_POST['salary_grade'] ?? '');
-        $org_unit = to_upper($_POST['organizational_unit'] ?? '');
-        $office = to_upper($_POST['office'] ?? '');
-        $cost_structure = to_upper($_POST['cost_structure'] ?? '');
+                // Begin transaction
+                try {
+                    $pdo->beginTransaction();
+                    // Process each row, skipping header
+                    for ($i = 1; $i < count($rows); $i++) {
+                        $row = $rows[$i];
+                        $userid = isset($row[0]) ? trim($row[0]) : '';
+                        $tardinessMins = isset($row[5]) ? floatval($row[5]) : 0; // Column F
+                        $lateMins = isset($row[6]) ? floatval($row[6]) : 0;      // Column G
 
-        // Classification value mapping
-        $classification_map = [
-            'PERMANENT' => 'P',
-            'COTERMINOUS' => 'CT',
-            'COTERMINOUS WITH THE INCUMBENT' => 'CTI'
-        ];
-        $classification_input = to_upper($_POST['classification'] ?? '');
-        $classification = '';
-        foreach ($classification_map as $key => $value) {
-            if ($classification_input === $key) {
-                $classification = $value;
-                break;
+                        if ($userid === '') {
+                            continue;
+                        }
+
+                        // Get employee fullname for reporting
+                        $stmtEmp = $pdo->prepare("SELECT fullname FROM employee WHERE id = :userid LIMIT 1");
+                        $stmtEmp->bindParam(':userid', $userid, PDO::PARAM_INT);
+                        $stmtEmp->execute();
+                        $empRow = $stmtEmp->fetch(PDO::FETCH_ASSOC);
+                        $empName = $empRow ? ucwords(strtolower($empRow['fullname'])) : "Unknown";
+
+                        // --- Vacation Leave Deduction (Column F) ---
+                        if ($tardinessMins > 0) {
+                            // Get current vacationleave
+                            $stmt = $pdo->prepare("SELECT vacationleave FROM credit_leave WHERE userid = :userid LIMIT 1");
+                            $stmt->bindParam(':userid', $userid, PDO::PARAM_INT);
+                            $stmt->execute();
+                            $cl = $stmt->fetch(PDO::FETCH_ASSOC);
+                            if (!$cl) {
+                                throw new Exception("{$empName}: No credit_leave record found for vacation leave deduction.");
+                            } else {
+                                $prev_balance = floatval($cl['vacationleave']);
+                                $changed_amount = floor(($tardinessMins / 480) * 1000) / 1000; // truncate to 3 decimals
+                                $new_balance = floor(($prev_balance - $changed_amount) * 1000) / 1000;
+                                if ($new_balance < 0) $new_balance = 0;
+
+                                // Log to leave_credit_log
+                                $stmt = $pdo->prepare("INSERT INTO leave_credit_log (userid, leave_type, change_type, previous_balance, changed_amount, new_balance, change_date, leave_id) VALUES (:userid, 'VACATION LEAVE', 'DEDUCTION DUE TO TARDINESS', :prev, :changed, :new, NOW(), NULL)");
+                                $stmt->bindParam(':userid', $userid, PDO::PARAM_INT);
+                                $stmt->bindParam(':prev', $prev_balance);
+                                $stmt->bindParam(':changed', $changed_amount);
+                                $stmt->bindParam(':new', $new_balance);
+                                $stmt->execute();
+
+                                // Update credit_leave
+                                $stmt = $pdo->prepare("UPDATE credit_leave SET vacationleave = :new WHERE userid = :userid");
+                                $stmt->bindParam(':new', $new_balance);
+                                $stmt->bindParam(':userid', $userid, PDO::PARAM_INT);
+                                $stmt->execute();
+
+                                $success[] = "{$empName}: Vacation Leave changed from {$prev_balance} to {$new_balance} (deducted {$changed_amount})";
+                            }
+                        }
+
+                        // --- Sick Leave Deduction (Column G) ---
+                        if ($lateMins > 0) {
+                            // Get current sickleave
+                            $stmt = $pdo->prepare("SELECT sickleave FROM credit_leave WHERE userid = :userid LIMIT 1");
+                            $stmt->bindParam(':userid', $userid, PDO::PARAM_INT);
+                            $stmt->execute();
+                            $cl = $stmt->fetch(PDO::FETCH_ASSOC);
+                            if (!$cl) {
+                                throw new Exception("{$empName}: No credit_leave record found for sick leave deduction.");
+                            } else {
+                                $prev_balance = floatval($cl['sickleave']);
+                                $changed_amount = floor(($lateMins / 480) * 1000) / 1000; // truncate to 3 decimals
+                                $new_balance = floor(($prev_balance - $changed_amount) * 1000) / 1000;
+                                if ($new_balance < 0) $new_balance = 0;
+
+                                // Log to leave_credit_log
+                                $stmt = $pdo->prepare("INSERT INTO leave_credit_log (userid, leave_type, change_type, previous_balance, changed_amount, new_balance, change_date, leave_id) VALUES (:userid, 'SICK LEAVE', 'DEDUCTION DUE TO TARDINESS', :prev, :changed, :new, NOW(), NULL)");
+                                $stmt->bindParam(':userid', $userid, PDO::PARAM_INT);
+                                $stmt->bindParam(':prev', $prev_balance);
+                                $stmt->bindParam(':changed', $changed_amount);
+                                $stmt->bindParam(':new', $new_balance);
+                                $stmt->execute();
+
+                                // Update credit_leave
+                                $stmt = $pdo->prepare("UPDATE credit_leave SET sickleave = :new WHERE userid = :userid");
+                                $stmt->bindParam(':new', $new_balance);
+                                $stmt->bindParam(':userid', $userid, PDO::PARAM_INT);
+                                $stmt->execute();
+
+                                $success[] = "{$empName}: Sick Leave changed from {$prev_balance} to {$new_balance} (deducted {$changed_amount})";
+                            }
+                        }
+                    }
+                    // All operations succeeded, commit transaction
+                    $pdo->commit();
+                    // Set session flag to prevent re-processing on refresh
+                    $_SESSION['tardiness_upload_done'] = true;
+                } catch (Exception $e) {
+                    // Rollback transaction on any error
+                    $pdo->rollBack();
+                    $errors[] = "Error processing file: " . $e->getMessage();
+                }
+            } else {
+                $errors[] = "Only CSV, XLS, or XLSX files are allowed.";
             }
+        } else {
+            $errors[] = "Upload failed. Please try again.";
         }
-        if ($classification === '') {
-            throw new Exception("Invalid classification selected.");
-        }
-
-        // Set userid to NULL, pstatus to 1
-        $userid_val = null;
-        $pstatus = 1;
-
-        // Prepare and execute the insert
-        $stmt = $pdo->prepare("INSERT INTO plantilla_position 
-            (userid, item_number, position_title, salary_grade, org_unit, office, cost_structure, classification, pstatus) 
-            VALUES (:userid, :item_number, :position_title, :salary_grade, :org_unit, :office, :cost_structure, :classification, :pstatus)");
-        $stmt->bindParam(':userid', $userid_val, PDO::PARAM_NULL);
-        $stmt->bindParam(':item_number', $item_number);
-        $stmt->bindParam(':position_title', $position_title);
-        $stmt->bindParam(':salary_grade', $salary_grade);
-        $stmt->bindParam(':org_unit', $org_unit);
-        $stmt->bindParam(':office', $office);
-        $stmt->bindParam(':cost_structure', $cost_structure);
-        $stmt->bindParam(':classification', $classification);
-        $stmt->bindParam(':pstatus', $pstatus, PDO::PARAM_INT);
-        $stmt->execute();
-
-        // Success message or redirect
-        header("Location: addplantilla");
-        exit;
-    } catch (Exception $e) {
-        $error = $e->getMessage();
-        echo "<div style='color:red;'>Error: " . htmlspecialchars($error) . "</div>";
     }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['privacy_check'])) {
+    $errors[] = "You must agree to the processing of personal information before submission.";
+}
+
+// Optionally, allow re-upload if user clicks a "reset" or "new upload" button
+if (isset($_GET['reset'])) {
+    $_SESSION['tardiness_upload_done'] = false;
 }
 ?>
 
-  <!DOCTYPE html>
-  <html lang="en">
-  <head>  
+<!DOCTYPE html>
+<html lang="en">
+<head>  
 
 <!-- Title -->
 <title> HRIS | Add Employee</title>
@@ -366,213 +444,82 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
   <div class="p-4 sm:p-6 space-y-4 sm:space-y-6">      
    
    <!-- Card -->
-    <div class="bg-white border border-gray-200 rounded-xl shadow-2xs overflow-hidden dark:bg-neutral-800 dark:border-neutral-700">
-      <div class="p-10">
-        <h2 class="text-xl font-bold text-gray-800 dark:text-neutral-200">
-          Add Plantilla Position
+<div class="bg-white border border-gray-200 rounded-xl shadow-2xs overflow-hidden dark:bg-neutral-800 dark:border-neutral-700">
+  <div class="p-10">
+    <h2 class="text-xl font-bold text-gray-800 dark:text-neutral-200">
+      Upload Employee Tardiness
+    </h2>
+    <p class="text-sm text-gray-600 dark:text-neutral-400 mb-8">
+      Upload the file containing updated total tardiness (in minutes) for each employee.
+    </p>
+
+    <?php if (!empty($errors)): ?>
+      <div class="mb-4 p-4 rounded bg-red-100 text-red-700"><?php foreach($errors as $e) echo htmlspecialchars($e) . '<br>'; ?></div>
+    <?php endif; ?>
+    <?php if (!empty($success)): ?>
+      <div class="py-8 first:pt-0 last:pb-0 border-t first:border-transparent border-gray-200 dark:border-neutral-700 dark:first:border-transparent">
+      <div class="font-medium text-sm text-gray-500 font-mono mb-3 dark:text-neutral-400"><?php foreach($success as $s) echo htmlspecialchars($s) . '<br>'; ?></div>
+      <div class="py-8 first:pt-0 last:pb-0 border-t first:border-transparent border-gray-200 dark:border-neutral-700 dark:first:border-transparent">
+    <?php endif; ?>
+
+    <form method="post" enctype="multipart/form-data" id="tardiness-upload-form">
+      <!-- Section -->
+      <div class="grid sm:grid-cols-12 gap-2 sm:gap-4 py-8 first:pt-0 last:pb-0 border-t first:border-transparent border-gray-200 dark:border-neutral-700 dark:first:border-transparent">
+        <div class="sm:col-span-3">
+          <label for="tardiness_file" class="inline-block text-sm font-normal text-gray-500 mt-2.5 dark:text-neutral-500">
+            Tardiness File (.xls)
+          </label>
+        </div>
+        <div class="sm:col-span-9">
+          <label for="tardiness_file" class="sr-only">Choose file</label>
+          <input type="file" name="tardiness_file" id="tardiness_file"
+            class="block w-full border border-gray-200 rounded-lg sm:text-sm focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400
+            file:bg-gray-50 file:border-0
+            file:bg-gray-100 file:me-4
+            file:py-2 file:px-4
+            dark:file:bg-neutral-700 dark:file:text-neutral-400"
+            required>
+        </div>
+      </div>
+      <!-- End Section -->
+
+      <div class="py-8 first:pt-0 last:pb-0 border-t first:border-transparent border-gray-200 dark:border-neutral-700 dark:first:border-transparent">
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-neutral-200">
+          Confirmation
         </h2>
-        <p class="text-sm text-gray-600 dark:text-neutral-400 mb-8">
-          All fields in the form are required.
+        <p class="mt-3 text-sm text-gray-600 dark:text-neutral-400">
+          Please confirm that you have reviewed the file and agree to process these deductions. <strong>This action cannot be undone.</strong>
         </p>
 
-        <form method="post" enctype="multipart/form-data">
-          <!-- Grid -->
-          <div class="grid sm:grid-cols-12 gap-2 sm:gap-6">
-
-            <div class="sm:col-span-3">
-              <label for="item_number" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                Item Number
-              </label>
-            </div>
-            <div class="sm:col-span-9">
-              <input id="item_number" name="item_number" type="text"
-                class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg"
-                placeholder="Enter Item Number" required>
-            </div>
-
-            <div class="sm:col-span-3">
-              <label for="position_title" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                Position Title
-              </label>
-            </div>
-            <div class="sm:col-span-9">
-              <input id="position_title" name="position_title" type="text"
-                class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg"
-                placeholder="Enter Position Title" required>
-            </div>
-
-            <div class="sm:col-span-3">
-              <label for="salary_grade" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                Salary Grade
-              </label>
-            </div>
-            <div class="sm:col-span-9">
-              <input id="salary_grade" name="salary_grade" type="number" min="0"
-                class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg"
-                placeholder="Enter Salary Grade" required>
-            </div>
-
-            <!-- Organizational Unit -->
-            <div class="sm:col-span-3">
-              <label for="organizational_unit" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                Organizational Unit
-              </label>
-            </div>
-            <div class="sm:col-span-9">
-              <select id="organizational_unit" name="organizational_unit"
-                class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg"
-                onchange="convertField('organizational_unit')" required>
-                <option disabled selected value="">Select Organizational Unit</option>
-                <?php foreach ($org_units as $val): ?>
-                  <option value="<?= htmlspecialchars($val) ?>"><?= htmlspecialchars($val) ?></option>
-                <?php endforeach; ?>
-                <option value="other">OTHERS</option>
-              </select>
-            </div>
-
-            <!-- Office -->
-            <div class="sm:col-span-3">
-              <label for="office" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                Office
-              </label>
-            </div>
-            <div class="sm:col-span-9">
-              <select id="office" name="office"
-                class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg"
-                onchange="convertField('office')" required>
-                <option disabled selected value="">Select Office</option>
-                <?php foreach ($offices as $val): ?>
-                  <option value="<?= htmlspecialchars($val) ?>"><?= htmlspecialchars($val) ?></option>
-                <?php endforeach; ?>
-                <option value="other">OTHERS</option>
-              </select>
-            </div>
-
-            <!-- Cost Structure -->
-            <div class="sm:col-span-3">
-              <label for="cost_structure" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                Cost Structure
-              </label>
-            </div>
-            <div class="sm:col-span-9">
-              <select id="cost_structure" name="cost_structure"
-                class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg"
-                onchange="convertField('cost_structure')" required>
-                <option disabled selected value="">Select Cost Structure</option>
-                <?php foreach ($cost_structures as $val): ?>
-                  <option value="<?= htmlspecialchars($val) ?>"><?= htmlspecialchars($val) ?></option>
-                <?php endforeach; ?>
-                <option value="other">OTHERS</option>
-              </select>
-            </div>
-
-            <script>
-              function convertField(fieldId) {
-                var dropdown = document.getElementById(fieldId);
-
-                if (dropdown.value === "other") {
-                  var inputField = document.createElement("input");
-                  inputField.type = "text";
-                  inputField.id = fieldId;
-                  inputField.name = fieldId;
-                  inputField.placeholder = "Enter " + fieldId.replace('_', ' ');
-                  inputField.className = dropdown.className;
-                  inputField.required = true;
-
-                  dropdown.parentNode.replaceChild(inputField, dropdown);
-
-                  // Automatically focus on the newly created input field
-                  inputField.focus();
-
-                  // Add an event listener to revert back if no value is entered
-                  inputField.addEventListener("blur", function () {
-                    if (!inputField.value.trim()) {
-                      revertToDropdown(inputField, fieldId);
-                    }
-                  });
-                }
-              }
-
-              function revertToDropdown(inputField, fieldId) {
-                // Get the original PHP array for the dropdown
-                let options = [];
-                <?php if ($org_units): ?>
-                if (fieldId === 'organizational_unit') options = <?php echo json_encode($org_units); ?>;
-                <?php endif; ?>
-                <?php if ($offices): ?>
-                if (fieldId === 'office') options = <?php echo json_encode($offices); ?>;
-                <?php endif; ?>
-                <?php if ($cost_structures): ?>
-                if (fieldId === 'cost_structure') options = <?php echo json_encode($cost_structures); ?>;
-                <?php endif; ?>
-
-                var dropdown = document.createElement("select");
-                dropdown.id = fieldId;
-                dropdown.name = fieldId;
-                dropdown.className = inputField.className;
-                dropdown.required = true;
-                dropdown.onchange = function () { convertField(fieldId); };
-
-                var placeholder = "Select " + fieldId.replace('_', ' ');
-                var optionPlaceholder = document.createElement("option");
-                optionPlaceholder.textContent = placeholder.toUpperCase();
-                optionPlaceholder.value = "";
-                optionPlaceholder.disabled = true;
-                optionPlaceholder.selected = true;
-                dropdown.appendChild(optionPlaceholder);
-
-                options.forEach(function(val) {
-                  var option = document.createElement("option");
-                  option.textContent = val;
-                  option.value = val;
-                  dropdown.appendChild(option);
-                });
-
-                var optionOther = document.createElement("option");
-                optionOther.textContent = "OTHERS";
-                optionOther.value = "other";
-                dropdown.appendChild(optionOther);
-
-                inputField.parentNode.replaceChild(dropdown, inputField);
-              }
-            </script>
-
-            <div class="sm:col-span-3">
-              <label for="classification" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                Classification
-              </label>
-            </div>
-            <div class="sm:col-span-9">
-              <select id="classification" name="classification"
-                class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg" required>
-                <option disabled selected value="">Select Classification</option>
-                <option>PERMANENT</option>
-                <option>COTERMINOUS</option>
-                <option>COTERMINOUS WITH THE INCUMBENT</option>
-              </select>
-            </div>
-
-            <!-- Separator Line -->
-            <div class="sm:col-span-12">
-              <hr class="my-4 border-t border-gray-200 dark:border-neutral-700">
-            </div>
-          </div>
-          <!-- End Grid -->
-
-          <div class="mt-1 flex justify-end gap-x-2">
-            <button type="button" onclick="history.back()"
-              class="py-2 px-3 inline-flex items-center text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50">
-              Cancel
-            </button>
-            <button id="saveBtn" type="submit"
-              class="py-2 px-3 inline-flex items-center text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700">
-              Add Plantilla
-            </button>
-          </div>
-        </form>
+        <div class="mt-5 flex">
+          <input type="checkbox" name="privacy_check" id="privacy_check"
+            class="shrink-0 mt-0.5 border-gray-300 rounded-sm text-blue-600 checked:border-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-600 dark:checked:bg-blue-500 dark:checked:border-blue-500 dark:focus:ring-offset-gray-800">
+          <label for="privacy_check" class="text-sm text-gray-500 ms-2 dark:text-neutral-400">
+            I confirm I have reviewed the file and agree to process these deductions.
+          </label>
+        </div>
       </div>
-    </div>
-    <!-- End Card -->
+      <!-- End Section -->
+
+      <button type="submit" id="submit-btn"
+        class="w-full py-3 px-4 inline-flex justify-center items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-hidden focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none"
+        disabled>
+        Process Tardiness Deductions
+      </button>
+    </form>
+  </div>
+</div>
+<!-- End Card -->
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const checkbox = document.getElementById('privacy_check');
+  const submitBtn = document.getElementById('submit-btn');
+  checkbox.addEventListener('change', function() {
+    submitBtn.disabled = !checkbox.checked;
+  });
+});
+</script>
 
 </div>
 </div>
@@ -580,14 +527,6 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
 
 <!-- Required plugins -->
 <script src="https://cdn.jsdelivr.net/npm/preline/dist/index.js"></script>
-
-<script>
-  document.getElementById('item_number').addEventListener('change', function() {
-    var selected = this.options[this.selectedIndex];
-    var posTitle = selected.getAttribute('data-position-title') || '';
-    document.getElementById('position_title').value = posTitle;
-  });
-</script>
 
 
 </body>
