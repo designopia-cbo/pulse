@@ -1,12 +1,11 @@
 <?php
 require_once('init.php');
 
-// ========== EFFECTIVITY DATES AJAX HANDLER ==========
-if (isset($_GET['effectivity_dates_ajax']) && $_SERVER['REQUEST_METHOD'] === 'GET') {
-    header('Content-Type: application/json');
-    function respond($arr) { echo json_encode($arr); exit; }
+// Helper for JSON response
+function respond($arr) { echo json_encode($arr); exit; }
 
-    // Determine which user ID to use (GET param preferred, then session)
+// --- GET handler: Fetch dates (also return id) ---
+if (isset($_GET['effectivity_dates_ajax']) && $_SERVER['REQUEST_METHOD'] === 'GET') {
     $profile_userid = isset($_GET['userid']) && is_numeric($_GET['userid'])
         ? intval($_GET['userid'])
         : (isset($_SESSION['userid']) ? intval($_SESSION['userid']) : null);
@@ -15,8 +14,7 @@ if (isset($_GET['effectivity_dates_ajax']) && $_SERVER['REQUEST_METHOD'] === 'GE
         respond(['success' => false, 'error' => 'No user specified.']);
     }
 
-    // Fetch dates from employment_details where edstatus=1
-    $stmt = $pdo->prepare("SELECT date_of_assumption, date_appointment FROM employment_details WHERE userid = :userid AND edstatus = 1 LIMIT 1");
+    $stmt = $pdo->prepare("SELECT id, date_of_assumption, date_appointment FROM employment_details WHERE userid = :userid AND edstatus = 1 LIMIT 1");
     $stmt->bindParam(':userid', $profile_userid, PDO::PARAM_INT);
     $stmt->execute();
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -26,13 +24,17 @@ if (isset($_GET['effectivity_dates_ajax']) && $_SERVER['REQUEST_METHOD'] === 'GE
         $date_appointment = (!empty($row['date_appointment']) && $row['date_appointment'] !== '0000-00-00') ? $row['date_appointment'] : '';
         respond([
             'success' => true,
+            'id' => $row['id'],
             'date_of_assumption' => $date_of_assumption,
             'date_appointment' => $date_appointment
         ]);
     } else {
+        // No record found, return empty values
         respond([
-            'success' => false,
-            'error' => 'No record found.'
+            'success' => true,
+            'id' => null,
+            'date_of_assumption' => '',
+            'date_appointment' => ''
         ]);
     }
 }
@@ -677,16 +679,17 @@ if ($user) {
                 <div class="py-4">
                   <div class="grid grid-cols-2 gap-3">
                     <div>
+                    <input type="hidden" id="employment_details_id" name="employment_details_id" value="">
                       <label for="oldassumption" class="inline-block text-sm font-normal dark:text-white">
                         Date of Assumption
                       </label>
-                      <input id="oldassumption" type="date" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400">
+                      <input type="date" id="oldassumption" type="date" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400">
                     </div>
                     <div>
                       <label for="oldappointment" class="inline-block text-sm font-normal dark:text-white">
                         Date of Appointment
                       </label>
-                      <input id="oldappointment" type="date" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400">
+                      <input type="date" id="oldappointment" type="date" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400">
                     </div>
                   </div>
                 </div>
@@ -707,29 +710,19 @@ if ($user) {
         </div>
         <!-- End Modal -->
         
-        <!-- Make sure this is set by PHP before the JS runs -->
-        <script>var profileUserId = <?= json_encode($profile_userid) ?>;</script>
-
-        <!-- Place the script here, after the modal HTML -->
         <script>
         function loadEffectivityDates(profileUserId) {
             fetch('profile.php?effectivity_dates_ajax=1&userid=' + encodeURIComponent(profileUserId))
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success) {
-                        document.getElementById('oldassumption').value = data.date_of_assumption || '';
-                        document.getElementById('oldappointment').value = data.date_appointment || '';
-                    } else {
-                        document.getElementById('oldassumption').value = '';
-                        document.getElementById('oldappointment').value = '';
-                        if (data.error) {
-                            alert("Error: " + data.error);
-                        }
-                    }
+                    document.getElementById('oldassumption').value = data.date_of_assumption || '';
+                    document.getElementById('oldappointment').value = data.date_appointment || '';
+                    document.getElementById('employment_details_id').value = data.id || '';
                 })
                 .catch(err => {
                     document.getElementById('oldassumption').value = '';
                     document.getElementById('oldappointment').value = '';
+                    document.getElementById('employment_details_id').value = '';
                     alert("Could not fetch effectivity dates.");
                     console.error("Fetch error:", err);
                 });
@@ -739,6 +732,7 @@ if ($user) {
             var trigger = document.getElementById('admin-option-link');
             if (trigger && typeof profileUserId !== 'undefined') {
                 trigger.addEventListener('click', function() {
+                    // Optionally, you may want to delay this if your modal animation needs it
                     setTimeout(function() {
                         loadEffectivityDates(profileUserId);
                     }, 100);
@@ -1446,11 +1440,6 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
   
-
-<script>
-  var profileUserId = <?= json_encode($profile_userid) ?>;
-</script>
-<script src="/pulse/js/profile_effectivity_dates.js"></script>
 
   </body>
 </html>
