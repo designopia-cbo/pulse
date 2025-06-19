@@ -1,6 +1,42 @@
 <?php
 require_once('init.php');
 
+// ========== EFFECTIVITY DATES AJAX HANDLER ==========
+if (isset($_GET['effectivity_dates_ajax']) && $_SERVER['REQUEST_METHOD'] === 'GET') {
+    header('Content-Type: application/json');
+    function respond($arr) { echo json_encode($arr); exit; }
+
+    // Determine which user ID to use (GET param preferred, then session)
+    $profile_userid = isset($_GET['userid']) && is_numeric($_GET['userid'])
+        ? intval($_GET['userid'])
+        : (isset($_SESSION['userid']) ? intval($_SESSION['userid']) : null);
+
+    if (!$profile_userid) {
+        respond(['success' => false, 'error' => 'No user specified.']);
+    }
+
+    // Fetch dates from employment_details where edstatus=1
+    $stmt = $pdo->prepare("SELECT date_of_assumption, date_appointment FROM employment_details WHERE userid = :userid AND edstatus = 1 LIMIT 1");
+    $stmt->bindParam(':userid', $profile_userid, PDO::PARAM_INT);
+    $stmt->execute();
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($row) {
+        $date_of_assumption = (!empty($row['date_of_assumption']) && $row['date_of_assumption'] !== '0000-00-00') ? $row['date_of_assumption'] : '';
+        $date_appointment = (!empty($row['date_appointment']) && $row['date_appointment'] !== '0000-00-00') ? $row['date_appointment'] : '';
+        respond([
+            'success' => true,
+            'date_of_assumption' => $date_of_assumption,
+            'date_appointment' => $date_appointment
+        ]);
+    } else {
+        respond([
+            'success' => false,
+            'error' => 'No record found.'
+        ]);
+    }
+}
+
 // ==============================
 // ACCESS CONTROL SECTION
 // ==============================
@@ -606,14 +642,15 @@ if ($user) {
                  href="<?= htmlspecialchars($edit_profile_href) ?>">
                 Edit Profile
               </a>
+
               <a
               id="admin-option-link"
               href="#"
               data-hs-overlay="#hs-medium-modal"
               class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700"
-            >
-              Admin Option
-            </a>
+                >
+                  Effective Dates
+                </a>
             </div>
           </div>
         </div>
@@ -637,44 +674,28 @@ if ($user) {
               </div>
               <div class="p-4 overflow-y-auto">
                 <!-- Date Fields in Two Columns Per Row -->
-                <div class="py-6 border-t border-gray-200 dark:border-neutral-700">
+                <div class="py-4">
                   <div class="grid grid-cols-2 gap-3">
                     <div>
-                      <label for="billing-date-start" class="inline-block text-sm font-normal dark:text-white">
+                      <label for="oldassumption" class="inline-block text-sm font-normal dark:text-white">
                         Date of Assumption
                       </label>
-                      <input id="billing-date-start" type="date" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400">
+                      <input id="oldassumption" type="date" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400">
                     </div>
                     <div>
-                      <label for="billing-date-end" class="inline-block text-sm font-normal dark:text-white">
+                      <label for="oldappointment" class="inline-block text-sm font-normal dark:text-white">
                         Date of Appointment
                       </label>
-                      <input id="billing-date-end" type="date" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400">
+                      <input id="oldappointment" type="date" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400">
                     </div>
                   </div>
                 </div>
-
-                <div class="py-6 border-t border-gray-200 dark:border-neutral-700">
-                  <div class="grid grid-cols-2 gap-3">
-                    <div>
-                      <label for="address-date-start" class="inline-block text-sm font-normal dark:text-white">
-                        Date of Assumption
-                      </label>
-                      <input id="address-date-start" type="date" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400">
-                    </div>
-                    <div>
-                      <label for="address-date-end" class="inline-block text-sm font-normal dark:text-white">
-                        Date of Appointment
-                      </label>
-                      <input id="address-date-end" type="date" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400">
-                    </div>
-                  </div>
-                </div>
+                <div id="effectivity-dates-error" class="text-red-600 text-sm py-2 hidden"></div>
+                <div class="py-3"></div>
               </div>
-
               <!-- Action Buttons -->
               <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t border-gray-200 dark:border-neutral-700">
-                <button type="button" class="py-1.5 sm:py-2 px-3 inline-flex items-center text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 dark:bg-neutral-800 dark:border-neutral-700 dark:text-white">
+                <button type="button" class="py-1.5 sm:py-2 px-3 inline-flex items-center text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 dark:bg-neutral-800 dark:border-neutral-700 dark:text-white" data-hs-overlay="#hs-medium-modal">
                   Cancel
                 </button>
                 <button type="submit" class="py-1.5 sm:py-2 px-3 inline-flex items-center text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white dark:bg-blue-700">
@@ -685,6 +706,46 @@ if ($user) {
           </div>
         </div>
         <!-- End Modal -->
+        
+        <!-- Make sure this is set by PHP before the JS runs -->
+        <script>var profileUserId = <?= json_encode($profile_userid) ?>;</script>
+
+        <!-- Place the script here, after the modal HTML -->
+        <script>
+        function loadEffectivityDates(profileUserId) {
+            fetch('profile.php?effectivity_dates_ajax=1&userid=' + encodeURIComponent(profileUserId))
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('oldassumption').value = data.date_of_assumption || '';
+                        document.getElementById('oldappointment').value = data.date_appointment || '';
+                    } else {
+                        document.getElementById('oldassumption').value = '';
+                        document.getElementById('oldappointment').value = '';
+                        if (data.error) {
+                            alert("Error: " + data.error);
+                        }
+                    }
+                })
+                .catch(err => {
+                    document.getElementById('oldassumption').value = '';
+                    document.getElementById('oldappointment').value = '';
+                    alert("Could not fetch effectivity dates.");
+                    console.error("Fetch error:", err);
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var trigger = document.getElementById('admin-option-link');
+            if (trigger && typeof profileUserId !== 'undefined') {
+                trigger.addEventListener('click', function() {
+                    setTimeout(function() {
+                        loadEffectivityDates(profileUserId);
+                    }, 100);
+                });
+            }
+        });
+        </script>
 
         <?php endif; ?>
 
@@ -1385,6 +1446,11 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
   
+
+<script>
+  var profileUserId = <?= json_encode($profile_userid) ?>;
+</script>
+<script src="/pulse/js/profile_effectivity_dates.js"></script>
 
   </body>
 </html>
