@@ -49,38 +49,3 @@ document.addEventListener('DOMContentLoaded', function () {
       });
   });
 });
-
-// Handles the AJAX form submission
-function submitEffectivityDatesForm(form) {
-  const errorDiv = document.getElementById('effectivity-dates-error');
-  if (errorDiv) {
-    errorDiv.classList.add('hidden');
-    errorDiv.textContent = '';
-  }
-  const formData = new FormData(form);
-
-  fetch('/pulse/profile_options/effectivity_date_submit.php', {
-    method: 'POST',
-    credentials: 'same-origin',
-    body: formData
-  })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        // Optionally: update the profile page with new info
-        window.HSOverlay.close(document.getElementById('hs-medium-modal'));
-        location.reload(); // or update fields via JS
-      } else {
-        if (errorDiv) {
-          errorDiv.textContent = data.error || 'Failed to update.';
-          errorDiv.classList.remove('hidden');
-        }
-      }
-    })
-    .catch(() => {
-      if (errorDiv) {
-        errorDiv.textContent = 'An error occurred while submitting.';
-        errorDiv.classList.remove('hidden');
-      }
-    });
-}
