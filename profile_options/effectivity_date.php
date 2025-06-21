@@ -1,10 +1,26 @@
 <?php
-// Security check: Only allow access if user is authenticated (adjust as needed)
 session_start();
+require_once(__DIR__ . '/../init.php'); // Adjust path if needed
+
+// Security: Only allow access if user is authenticated
 if (!isset($_SESSION['userid'])) {
     http_response_code(403);
     exit('Forbidden');
 }
+
+// Determine which userid to use (profile being viewed)
+$userid = $_SESSION['userid'];
+$profile_userid = (isset($_GET['userid']) && is_numeric($_GET['userid'])) ? intval($_GET['userid']) : $userid;
+
+// Fetch employment details for the profile user with edstatus = 1
+$stmt = $pdo->prepare("SELECT id, date_of_assumption, date_appointment FROM employment_details WHERE userid = :userid AND edstatus = 1 LIMIT 1");
+$stmt->bindParam(':userid', $profile_userid, PDO::PARAM_INT);
+$stmt->execute();
+$row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+$employment_details_id = $row ? $row['id'] : '';
+$date_of_assumption = $row && !empty($row['date_of_assumption']) && $row['date_of_assumption'] !== '0000-00-00' ? $row['date_of_assumption'] : '';
+$date_appointment = $row && !empty($row['date_appointment']) && $row['date_appointment'] !== '0000-00-00' ? $row['date_appointment'] : '';
 ?>
 <!-- Modal -->
 <div id="hs-medium-modal" class="hs-overlay hidden size-full fixed top-0 start-0 z-80 overflow-x-hidden overflow-y-auto pointer-events-none" role="dialog" tabindex="-1" aria-labelledby="hs-medium-modal-label">
@@ -25,13 +41,13 @@ if (!isset($_SESSION['userid'])) {
         <div class="py-4">
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <input type="hidden" id="employment_details_id" name="employment_details_id" value="">
+              <input type="hidden" id="employment_details_id" name="employment_details_id" value="<?= htmlspecialchars($employment_details_id) ?>">
               <label for="oldassumption" class="inline-block text-sm font-normal dark:text-white">Date of Assumption</label>
-              <input type="date" id="oldassumption" name="date_of_assumption" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400">
+              <input type="date" id="oldassumption" name="date_of_assumption" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400" value="<?= htmlspecialchars($date_of_assumption) ?>">
             </div>
             <div>
               <label for="oldappointment" class="inline-block text-sm font-normal dark:text-white">Date of Appointment</label>
-              <input type="date" id="oldappointment" name="date_appointment" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400">
+              <input type="date" id="oldappointment" name="date_appointment" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400" value="<?= htmlspecialchars($date_appointment) ?>">
             </div>
           </div>
         </div>
