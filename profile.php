@@ -615,6 +615,14 @@ if ($user) {
               Effective Dates
             </a>
 
+            <a
+              id="admin-promote-link"
+              href="#"
+              class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700"
+            >
+              Promote Employee
+            </a>
+
             </div>
           </div>
         </div>
@@ -1323,6 +1331,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <div id="modal-container"></div>
 <script src="/pulse/js/effectivity_date.js"></script>
+
+<div id="modal-promote-container"></div>
+<script src="/pulse/js/promote_employee.js"></script>
 
   </body>
 </html>
