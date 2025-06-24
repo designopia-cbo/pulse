@@ -88,14 +88,38 @@ document.addEventListener('DOMContentLoaded', function () {
           window.HSOverlay.open(document.getElementById('hs-promote-modal'));
         }
 
-        // Attach form submit handler (no actual backend yet, just prevent default for now)
+        // Attach form submit handler (AJAX)
         const form = document.getElementById('promote-employee-form');
         if (form) {
           form.addEventListener('submit', function (ev) {
             ev.preventDefault();
-            // You can add AJAX submit logic here later
-            window.HSOverlay.close(document.getElementById('hs-promote-modal'));
-            // location.reload();
+
+            const formData = new FormData(form);
+            // Always get the value from the hidden field for profile_userid
+            const profileUserIdInput = form.querySelector('input[name="profile_userid"]');
+            if (profileUserIdInput && !formData.has('profile_userid')) {
+              formData.append('profile_userid', profileUserIdInput.value);
+            }
+
+            fetch('/pulse/profile_options/promote_employee', {
+              method: 'POST',
+              credentials: 'same-origin',
+              body: formData
+            })
+              .then(r => r.json())
+              .then(data => {
+                if (data.success) {
+                  window.HSOverlay.close(document.getElementById('hs-promote-modal'));
+                  location.reload();
+                } else {
+                  document.getElementById('promote-employee-error').textContent = data.error || "Promotion failed.";
+                  document.getElementById('promote-employee-error').classList.remove('hidden');
+                }
+              })
+              .catch(err => {
+                document.getElementById('promote-employee-error').textContent = err.message;
+                document.getElementById('promote-employee-error').classList.remove('hidden');
+              });
           });
         }
 

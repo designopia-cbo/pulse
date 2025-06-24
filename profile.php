@@ -623,6 +623,14 @@ if ($user) {
               Promote Employee
             </a>
 
+            <a
+              id="admin-separate-link"
+              href="#"
+              class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700"
+            >
+              Remove Employee
+            </a>
+
             </div>
           </div>
         </div>
@@ -1334,6 +1342,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <div id="modal-promote-container"></div>
 <script src="/pulse/js/promote_employee.js"></script>
+
+<div id="modal-separate-container"></div>
+<script src="/pulse/js/separate_employee.js"></script>
 
   </body>
 </html>
