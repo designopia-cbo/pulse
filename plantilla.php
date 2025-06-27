@@ -17,147 +17,143 @@ if ($user) {
   $initial = "U";
 }
 
-// Check if the user is an ADMINISTRATOR
-if ($_SESSION['level'] !== 'ADMINISTRATOR') {
+// Check if the user is an ADMINISTRATOR and category is HR, MINISTER, or SUPERADMIN
+if (
+    $_SESSION['level'] !== 'ADMINISTRATOR' ||
+    !in_array($_SESSION['category'], ['HR', 'MINISTER', 'SUPERADMIN'])
+) {
     session_unset();
     session_destroy();
-    header("Location: profile");
+    header("Location: login");
     exit;
 }
 
-// --- Search Logic ---
+// --- Search, Filter & Sorting Logic ---
 $search = isset($_GET['q']) ? trim($_GET['q']) : '';
-
-// --- Pagination Logic ---
-$rowsPerPage = 20;
+$statusFilter = isset($_GET['status']) ? $_GET['status'] : 'all'; // 'all', 'filled', 'vacant'
 $page = isset($_GET['page']) && is_numeric($_GET['page']) && $_GET['page'] > 0 ? (int)$_GET['page'] : 1;
+$rowsPerPage = 50;
 $offset = ($page - 1) * $rowsPerPage;
 
-// --- Build Search WHERE Clause ---
-$where = "WHERE ed.edstatus = 1";
+$sort = isset($_GET['sort']) ? $_GET['sort'] : '';
+$order = isset($_GET['order']) && strtolower($_GET['order']) === 'desc' ? 'desc' : 'asc';
+$allowedSort = [
+    'item_number', 'position_title', 'salary_grade', 'org_unit', 'office', 'cost_structure', 'classification', 'pstatus'
+];
+if (!in_array($sort, $allowedSort)) $sort = '';
+
+// --- Build Search & Filter WHERE Clause ---
+$where = "WHERE 1";
 $params = [];
 
-// ------------------------------
-// Access Control Logic (match profile/editprofile)
-// ------------------------------
-if ($category === 'MINISTER' || $category === 'HR') {
-    // MINISTER/HR can view all employees
-    // No extra filter
-} elseif ($category === 'AAO') {
-    // AAO can view only employees in the same office
-    $officeStmt = $pdo->prepare("SELECT office FROM plantilla_position WHERE userid = :userid LIMIT 1");
-    $officeStmt->bindParam(':userid', $userid, PDO::PARAM_INT);
-    $officeStmt->execute();
-    $officeRow = $officeStmt->fetch(PDO::FETCH_ASSOC);
-    $aaoOffice = $officeRow ? $officeRow['office'] : null;
-
-    if ($aaoOffice !== null) {
-        $where .= " AND pp.office = :aao_office";
-        $params[':aao_office'] = $aaoOffice;
-    } else {
-        $where .= " AND 1=0"; // If AAO user has no office, show nothing
-    }
-} else {
-    // All other users:
-    // Show only: self, supervised, managed
-    $orConditions = [];
-    $orConditions[] = "ed.userid = :self_userid";
-    $params[':self_userid'] = $userid;
-    $orConditions[] = "ed.supervisor = :supervisor_userid";
-    $params[':supervisor_userid'] = $userid;
-    $orConditions[] = "ed.manager = :manager_userid";
-    $params[':manager_userid'] = $userid;
-    $where .= " AND (" . implode(" OR ", $orConditions) . ")";
-}
-
 if ($search !== '') {
-  $where .= " AND (
-    e.fullname LIKE :search
-    OR pp.position_title LIKE :search
-  )";
+  $where .= " AND (e.fullname LIKE :search OR pp.item_number LIKE :search OR pp.position_title LIKE :search OR pp.office LIKE :search)";
   $params[':search'] = '%' . $search . '%';
 }
 
-// --- Count total active employees for pagination ---
+if ($statusFilter === 'filled') {
+    $where .= " AND pp.userid IS NOT NULL";
+} elseif ($statusFilter === 'vacant') {
+    $where .= " AND pp.userid IS NULL";
+}
+
+// --- Count total for pagination ---
 $countSql = "
-SELECT COUNT(*) as total
-FROM employment_details ed
-INNER JOIN employee e ON ed.userid = e.id
-INNER JOIN plantilla_position pp ON ed.position_id = pp.id
-$where
+  SELECT COUNT(*) as total
+  FROM plantilla_position pp
+  LEFT JOIN employee e ON pp.userid = e.id
+  $where
 ";
 $countStmt = $pdo->prepare($countSql);
 $countStmt->execute($params);
 $totalRows = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
 $totalPages = ceil($totalRows / $rowsPerPage);
 
-// --- Fetch paginated, sorted employee data ---
+// --- Fetch data for current page ---
+$orderBySql = $sort ? "$sort $order" : "item_number ASC";
 $sql = "
-SELECT 
-  ed.userid,
-  e.fullname,
-  pp.position_title,
-  pp.classification
-FROM employment_details ed
-INNER JOIN employee e ON ed.userid = e.id
-INNER JOIN plantilla_position pp ON ed.position_id = pp.id
-$where
+  SELECT 
+    pp.id,
+    pp.userid,
+    pp.item_number,
+    pp.position_title,
+    pp.salary_grade,
+    pp.org_unit,
+    pp.office,
+    pp.cost_structure,
+    pp.classification,
+    pp.pstatus
+  FROM plantilla_position pp
+  LEFT JOIN employee e ON pp.userid = e.id
+  $where
+  ORDER BY $orderBySql
+  LIMIT :offset, :rowsPerPage
 ";
 $stmt = $pdo->prepare($sql);
-$stmt->execute($params);
+foreach ($params as $key => $value) {
+    $stmt->bindValue($key, $value, PDO::PARAM_STR);
+}
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+$stmt->bindValue(':rowsPerPage', $rowsPerPage, PDO::PARAM_INT);
+$stmt->execute();
 
-$allEmployees = [];
+$plantillaRows = [];
 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-  // Format full name using fullname column and proper case
-  $properFullName = ucwords(strtolower($row['fullname']));
+    // Classification mapping
+    $classMap = [
+        'P' => 'PERM.',
+        'CT' => 'COTRM',
+        'CTI' => 'COTRM W/INC'
+    ];
+    $classification = isset($classMap[strtoupper($row['classification'])]) ? $classMap[strtoupper($row['classification'])] : $row['classification'];
 
-  // Map classification code to label
-  $classification = '';
-  switch (strtoupper($row['classification'])) {
-    case 'P':
-      $classification = 'Permanent';
-      break;
-    case 'CTI':
-      $classification = 'Coterminous with the Incumbent';
-      break;
-    case 'CT':
-      $classification = 'Coterminous';
-      break;
-    default:
-      $classification = $row['classification'];
-      break;
-  }
+    // pstatus mapping
+    $pstatus = $row['pstatus'] == 1 ? 'ACTIVE' : 'CLOSED';
 
-  $allEmployees[] = [
-    'userid' => $row['userid'],
-    'name' => $properFullName,
-    'classification' => $classification,
-    'position_title' => strtoupper($row['position_title']), // Convert to uppercase
-    'initial' => strtoupper(substr($properFullName, 0, 1))
-  ];
+    $plantillaRows[] = [
+        'userid' => $row['userid'],
+        'item_number' => $row['item_number'],
+        'position_title' => strtoupper($row['position_title']),
+        'salary_grade' => $row['salary_grade'],
+        'org_unit' => $row['org_unit'],
+        'office' => $row['office'],
+        'cost_structure' => $row['cost_structure'],
+        'classification' => $classification,
+        'pstatus' => $pstatus
+    ];
 }
 
-// Sort employees by concatenated name (A-Z)
-usort($allEmployees, function($a, $b) {
-  return strcmp($a['name'], $b['name']);
-});
+$plantilla = $plantillaRows;
 
-// Get only the employees for the current page
-$employees = array_slice($allEmployees, $offset, $rowsPerPage);
-
-// Add additional security headers
-header('X-Frame-Options: DENY');
-header('X-XSS-Protection: 1; mode=block');
-header('X-Content-Type-Options: nosniff');
-header('Referrer-Policy: no-referrer');
+// Helper for sort links (active column = blue font)
+function sort_link($title, $column, $currentSort, $currentOrder, $search, $page, $statusFilter) {
+    $nextOrder = ($currentSort === $column && $currentOrder === 'asc') ? 'desc' : 'asc';
+    $isActive = $currentSort === $column;
+    $params = [
+        'q' => $search,
+        'page' => $page,
+        'sort' => $column,
+        'order' => $nextOrder
+    ];
+    if ($statusFilter !== 'all') {
+        $params['status'] = $statusFilter;
+    }
+    $url = '?' . http_build_query($params);
+    $classes = $isActive
+        ? 'hover:underline text-blue-600 dark:text-blue-400'
+        : 'hover:underline text-gray-800 dark:text-neutral-200';
+    return "<a href=\"$url\" class=\"$classes\">$title</a>";
+}
 ?>
+
+
 
   <!DOCTYPE html>
   <html lang="en">
   <head>  
 
 <!-- Title -->
-<title> HRIS | Employee List</title>
+<title> HRIS | Plantilla</title>
 
 <!-- CSS Preline -->
 <link rel="stylesheet" href="https://preline.co/assets/css/main.min.css">
@@ -268,7 +264,7 @@ header('Referrer-Policy: no-referrer');
         </svg>
       </li>
       <li class="text-sm font-semibold text-gray-800 truncate dark:text-neutral-400" aria-current="page">
-        Employee List
+        Plantilla
       </li>
     </ol>
     <!-- End Breadcrumb -->
@@ -314,7 +310,7 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
 
         <li>
           <?php if (isset($_SESSION['level']) && $_SESSION['level'] === 'ADMINISTRATOR'): ?>
-            <a class="flex items-center gap-x-3.5 py-2 px-2.5 bg-gray-100 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-700 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-white" href="employeelist">
+            <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-700 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-white" href="employeelist">
               <svg class="size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>                        
               Employee List
             </a>
@@ -429,19 +425,19 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
 <div class="w-full lg:ps-64">
   <div class="p-4 sm:p-6 space-y-4 sm:space-y-6">      
    
-    <!-- Card -->
-    <div class="flex flex-col">
-      <div class="-m-1.5 overflow-x-auto">
-        <div class="p-1.5 min-w-full inline-block align-middle">
-          <div class="bg-white border border-gray-200 rounded-xl shadow-2xs overflow-hidden dark:bg-neutral-800 dark:border-neutral-700">
-            <!-- Header -->
+<!-- Card -->
+<div class="flex flex-col">
+  <div class="-m-1.5 overflow-x-auto">
+    <div class="p-1.5 min-w-full inline-block align-middle">
+      <div class="bg-white border border-gray-200 rounded-xl shadow-2xs overflow-hidden dark:bg-neutral-800 dark:border-neutral-700">
+        <!-- Header -->
             <div class="px-6 py-4 grid gap-3 md:flex md:justify-between md:items-center border-b border-gray-200 dark:border-neutral-700">
               <div>
                 <h2 class="text-xl font-semibold text-gray-800 dark:text-neutral-200">
-                  List of Employees
+                  List of Plantilla Positions
                 </h2>
                 <p class="text-sm text-gray-600 dark:text-neutral-400">
-                  The following employees are under your supervision.
+                  The following plantilla positions are listed below.
                 </p>
               </div>
               <div>
@@ -453,7 +449,7 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
                     in_array($_SESSION['category'], ['HR', 'MINISTER'])
                   ): ?>
 
-                  <button id="add-employee" type="button" class="hs-dropdown-toggle flex justify-center items-center size-9 text-sm font-semibold rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-800 dark:focus:bg-neutral-800" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" onclick="window.location.href='addemployee'">
+                  <button id="add-employee" type="button" class="hs-dropdown-toggle flex justify-center items-center size-9 text-sm font-semibold rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-800 dark:focus:bg-neutral-800" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" onclick="window.location.href='addplantilla'">
                   <svg class="flex-none size-4 text-gray-600 dark:text-neutral-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="12" y1="5" x2="12" y2="19"/>
                     <line x1="5" y1="12" x2="19" y2="12"/>
@@ -467,132 +463,227 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
             </div>
             <!-- End Header -->
 
-            <!-- Search Box -->
-            <div class="px-6 py-4 border-b border-gray-200 dark:border-neutral-700">
-              <div class="relative max-w-xs">
-                <form method="get" action="">
-                  <label for="employee-search" class="sr-only">Search</label>
-                  <input type="text" name="q" id="employee-search"
-                  class="py-1.5 sm:py-2 px-3 ps-9 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-                  placeholder="Search for employees"
-                  value="<?php echo htmlspecialchars($search); ?>">
-                </form>
-                <div class="absolute inset-y-0 start-0 flex items-center pointer-events-none ps-3">
-                  <svg class="size-4 text-gray-400 dark:text-neutral-500" xmlns="http://www.w3.org/2000/svg"
-                  width="24" height="24" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                  stroke-linejoin="round">
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <path d="m21 21-4.3-4.3"></path>
-                </svg>
-              </div>
-            </div>
-          </div>
-          <!-- End Search Box -->
-
-          <!-- Start Table -->
-          <table class="min-w-full table-fixed divide-y divide-gray-200 dark:divide-neutral-700">
-            <colgroup>
-              <col style="width: 40%">
-              <col style="width: 30%">
-              <col style="width: 30%">
-            </colgroup>
-            <thead class="bg-gray-50 dark:bg-neutral-800">
-              <tr>
-                <th scope="col" class="ps-6 pe-6 py-3 text-start">
-                  <span class="text-xs font-semibold uppercase text-gray-800 dark:text-neutral-200">Employee Name</span>
-                </th>
-                <th scope="col" class="px-6 py-3 text-start">
-                  <span class="text-xs font-semibold uppercase text-gray-800 dark:text-neutral-200">Position</span>
-                </th>
-                <th scope="col" class="px-8 py-3 text-end"></th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200 dark:divide-neutral-700">
-              <?php if (count($employees) == 0): ?>
-                <tr>
-                  <td colspan="3" class="ps-6 pe-6 py-3 text-center align-middle text-gray-500 dark:text-neutral-400">
-                    No employees found.
-                  </td>
-                </tr>
-              <?php else: ?>
-                <?php foreach ($employees as $emp): ?>
-                  <tr>
-                    <td class="ps-6 pe-6 py-3 whitespace-nowrap align-middle">
-                      <div class="flex items-center gap-x-3">
-                        <span class="inline-flex items-center justify-center size-9.5 rounded-full bg-white border border-gray-300 dark:bg-neutral-800 dark:border-neutral-700">
-                          <span class="font-medium text-sm text-gray-800 dark:text-neutral-200"><?php echo htmlspecialchars($emp['initial']); ?></span>
-                        </span>
-                        <div class="grow">
-                          <span class="block text-sm font-semibold text-gray-800 dark:text-neutral-200"><?php echo htmlspecialchars($emp['name']); ?></span>
-                          <span class="text-sm text-gray-500 dark:text-neutral-500"><?php echo htmlspecialchars($emp['classification']); ?></span>
-                        </div>
-                      </div>
-                    </td>
-                    <td class="px-6 py-3 whitespace-nowrap align-middle">
-                      <span class="text-sm text-gray-500 dark:text-neutral-500"><?php echo htmlspecialchars($emp['position_title']); ?></span>
-                    </td>
-                    <td class="px-8 py-3 whitespace-nowrap text-end align-middle">
-                      <div class="flex gap-2 justify-end">
-                        <a href="profile?userid=<?php echo urlencode($emp['userid']); ?>"
-                          class="view-link py-1 px-2 inline-flex justify-center items-center gap-2 rounded-lg border border-gray-200 font-medium bg-white text-gray-700 shadow-2xs align-middle hover:bg-gray-50 focus:outline-none focus:ring-0 transition-all text-sm dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:hover:text-white dark:focus:ring-offset-gray-800">
-                          View
-                        </a>
-                        <div class="hs-dropdown relative inline-flex">
-                          <button type="button" class="flex justify-center items-center size-9 text-sm font-semibold rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-none focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-800 dark:focus:bg-neutral-800" disabled aria-disabled="true">
-                            <svg class="flex-none size-4 text-gray-600 dark:text-neutral-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <circle cx="12" cy="12" r="1"/>
-                              <circle cx="12" cy="5" r="1"/>
-                              <circle cx="12" cy="19" r="1"/>
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                <?php endforeach; ?>
-              <?php endif; ?>
-            </tbody>
-          </table>
-          <!-- End Table -->
-
-        <!-- Footer (Pagination) -->
-        <div class="px-6 py-4 grid gap-3 md:flex md:justify-between md:items-center border-t border-gray-200 dark:border-neutral-700">
-          <div>
-            <p class="text-sm text-gray-600 dark:text-neutral-400">
-              <span class="font-semibold text-gray-800 dark:text-neutral-200"><?php echo $totalRows; ?></span> result<?php echo $totalRows == 1 ? '' : 's'; ?>
-            </p>
-          </div>
-          <div class="inline-flex gap-x-2">
-            <!-- Prev button -->
-            <a href="?q=<?php echo urlencode($search); ?>&page=<?php echo max($page - 1, 1); ?>"
-             class="py-1.5 px-2 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 <?php echo $page == 1 ? 'opacity-50 pointer-events-none' : ''; ?> dark:bg-transparent dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:focus:bg-neutral-800">
-             <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path d="m15 18-6-6 6-6"/>
-            </svg>
-            Prev
+        <!-- Search Box with Dropdown Filter -->
+<div class="px-6 py-4 border-b border-gray-200 dark:border-neutral-700 flex flex-row items-center gap-x-2">
+  <div class="relative max-w-xs flex-1">
+    <form method="get" action="" class="flex">
+      <input type="hidden" name="status" value="<?php echo htmlspecialchars($statusFilter); ?>">
+      <label for="plantilla-search" class="sr-only">Search</label>
+      <input type="text" name="q" id="plantilla-search"
+      class="h-9 px-3 ps-9 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+      placeholder="Search for plantilla position"
+      value="<?php echo htmlspecialchars($search); ?>">
+    </form>
+    <div class="absolute inset-y-0 start-0 flex items-center pointer-events-none ps-3">
+      <svg class="size-4 text-gray-400 dark:text-neutral-500" xmlns="http://www.w3.org/2000/svg"
+        width="24" height="24" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <path d="m21 21-4.3-4.3"></path>
+      </svg>
+    </div>
+  </div>
+  <!-- Dropdown filter beside search -->
+  <div>
+    <div class="hs-dropdown relative inline-flex">
+      <button id="hs-dropdown-custom-icon-trigger" type="button"
+        class="hs-dropdown-toggle flex justify-center items-center size-9 text-sm font-semibold rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-800 dark:focus:bg-neutral-800"
+        aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+        <svg class="flex-none size-4 text-gray-600 dark:text-neutral-500" xmlns="http://www.w3.org/2000/svg"
+          width="24" height="24" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <polygon points="3 4 21 4 14 14 14 20 10 20 10 14 3 4" />
+        </svg>
+      </button>
+      <div
+        class="hs-dropdown-menu min-w-40 transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden bg-white shadow-md rounded-lg mt-2 dark:bg-neutral-800 dark:border dark:border-neutral-700"
+        role="menu" aria-orientation="vertical" aria-labelledby="hs-dropdown-custom-icon-trigger">
+        <div class="p-1 space-y-0.5">
+          <?php
+          $statusOptions = [
+            'all' => 'All',
+            'filled' => 'Filled',
+            'vacant' => 'Vacant'
+          ];
+          foreach ($statusOptions as $key => $label):
+            $query = '?status=' . urlencode($key);
+            if ($search !== '') $query .= '&q=' . urlencode($search);
+            if ($sort !== '') $query .= '&sort=' . urlencode($sort);
+            if ($order !== '') $query .= '&order=' . urlencode($order);
+          ?>
+          <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700 <?= $statusFilter === $key ? 'font-semibold text-blue-600 dark:text-blue-400' : '' ?>"
+            href="<?= $query ?>" role="menuitem">
+            <?= $label ?>
+            <?php if ($statusFilter === $key): ?>
+              <svg class="ml-auto size-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor"
+                stroke-width="2" viewBox="0 0 24 24">
+                <path d="M5 13l4 4L19 7" />
+              </svg>
+            <?php endif; ?>
           </a>
-          <!-- Next button -->
-          <a href="?q=<?php echo urlencode($search); ?>&page=<?php echo min($page + 1, $totalPages); ?>"
-           class="py-1.5 px-2 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 <?php echo $page == $totalPages || $totalPages == 0 ? 'opacity-50 pointer-events-none' : ''; ?> dark:bg-transparent dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:focus:bg-neutral-800">
-           Next
-           <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path d="m9 18 6-6-6-6"/>
-          </svg>
-        </a>
+          <?php endforeach; ?>
+        </div>
       </div>
     </div>
-    <!-- End Footer -->
-
   </div>
+</div>
+<!-- End Search Box & Dropdown -->
+
+
+      <!-- Start Table -->
+      <table class="min-w-full table-fixed divide-y divide-gray-200 dark:divide-neutral-700">
+        <colgroup>
+          <col style="width: 11%">
+          <col style="width: 15%">
+          <col style="width: 17%">
+          <col style="width: 11%">
+          <col style="width: 13%">
+          <col style="width: 13%">
+          <col style="width: 10%">
+          <col style="width: 10%">
+        </colgroup>
+        <thead class="bg-gray-50 dark:bg-neutral-800">
+          <tr>
+            <th scope="col" class="px-6 py-3 text-start">
+              <span class="text-xs font-semibold uppercase">
+                <?php echo sort_link('Status', 'pstatus', $sort, $order, $search, $page, $statusFilter); ?>
+              </span>
+            </th>
+            <th scope="col" class="ps-6 pe-6 py-3 text-start">
+              <span class="text-xs font-semibold uppercase">
+                <?php echo sort_link('Item Number', 'item_number', $sort, $order, $search, $page, $statusFilter); ?>
+              </span>
+            </th>
+            <th scope="col" class="px-6 py-3 text-start">
+              <span class="text-xs font-semibold uppercase">
+                <?php echo sort_link('Position', 'position_title', $sort, $order, $search, $page, $statusFilter); ?>
+              </span>
+            </th>
+            <th scope="col" class="px-6 py-3 text-start">
+              <span class="text-xs font-semibold uppercase">
+                <?php echo sort_link('SG', 'salary_grade', $sort, $order, $search, $page, $statusFilter); ?>
+              </span>
+            </th>
+            <th scope="col" class="px-6 py-3 text-start">
+              <span class="text-xs font-semibold uppercase">
+                <?php echo sort_link('Org Unit', 'org_unit', $sort, $order, $search, $page, $statusFilter); ?>
+              </span>
+            </th>
+            <th scope="col" class="px-6 py-3 text-start">
+              <span class="text-xs font-semibold uppercase">
+                <?php echo sort_link('Office', 'office', $sort, $order, $search, $page, $statusFilter); ?>
+              </span>
+            </th>
+            <th scope="col" class="px-6 py-3 text-start">
+              <span class="text-xs font-semibold uppercase">
+                <?php echo sort_link('Structure', 'cost_structure', $sort, $order, $search, $page, $statusFilter); ?>
+              </span>
+            </th>
+            <th scope="col" class="px-6 py-3 text-start">
+              <span class="text-xs font-semibold uppercase">
+                <?php echo sort_link('Classification', 'classification', $sort, $order, $search, $page, $statusFilter); ?>
+              </span>
+            </th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-neutral-700">
+          <?php if (count($plantilla) == 0): ?>
+            <tr>
+              <td colspan="8" class="ps-6 pe-6 py-3 text-center align-middle text-gray-500 dark:text-neutral-400">
+                No plantilla positions found.
+              </td>
+            </tr>
+          <?php else: ?>
+            <?php foreach ($plantilla as $row): ?>
+                <tr>
+                  <td class="px-6 py-3 whitespace-nowrap align-middle">
+                    <?php if ($row['pstatus'] === 'ACTIVE'): ?>
+                        <span class="py-1 px-1.5 inline-flex items-center gap-x-1 text-xs font-medium bg-teal-100 text-teal-800 rounded-full dark:bg-teal-500/10 dark:text-teal-500">
+                            <svg class="size-2.5" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+                            </svg>
+                            Active
+                        </span>
+                    <?php else: ?>
+                        <span class="py-1 px-1.5 inline-flex items-center gap-x-1 text-xs font-medium bg-gray-100 text-gray-500 rounded-full dark:bg-gray-700 dark:text-gray-300">
+                          <svg class="size-2.5" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                              <path d="M8 1a7 7 0 1 0 7 7A7.008 7.008 0 0 0 8 1zm0 12a.75.75 0 1 1 0-1.5A.75.75 0 0 1 8 13zm.75-3.25h-1.5V5h1.5z"/>
+                          </svg>
+                          Closed
+                      </span>
+                    <?php endif; ?>
+                </td>
+                <td class="ps-6 pe-6 py-3 whitespace-nowrap align-middle">
+                  <?php if (!empty($row['userid'])): ?>
+                    <a href="profile.php?id=<?php echo urlencode($row['userid']); ?>" class="font-mono text-sm text-blue-600 dark:text-blue-500">
+                      <?php echo htmlspecialchars($row['item_number']); ?>
+                    </a>
+                  <?php else: ?>
+                    <span class="font-mono text-sm text-gray-500 dark:text-blue-500">
+                      <?php echo htmlspecialchars($row['item_number']); ?>
+                    </span>
+                  <?php endif; ?>
+                </td>
+                <td class="px-6 py-3 whitespace-nowrap align-middle">
+                  <span class="font-mono text-sm text-gray-500 dark:text-blue-500"><?php echo htmlspecialchars($row['position_title']); ?></span>
+                </td>
+                <td class="px-6 py-3 whitespace-nowrap align-middle">
+                  <span class="font-mono text-sm text-gray-500 dark:text-blue-500"><?php echo htmlspecialchars($row['salary_grade']); ?></span>
+                </td>
+                <td class="px-6 py-3 whitespace-nowrap align-middle">
+                  <span class="font-mono text-sm text-gray-500 dark:text-blue-500"><?php echo htmlspecialchars($row['org_unit']); ?></span>
+                </td>
+                <td class="px-6 py-3 whitespace-nowrap align-middle">
+                  <span class="font-mono text-sm text-gray-500 dark:text-blue-500"><?php echo htmlspecialchars($row['office']); ?></span>
+                </td>
+                <td class="px-6 py-3 whitespace-nowrap align-middle">
+                  <span class="font-mono text-sm text-gray-500 dark:text-blue-500"><?php echo htmlspecialchars($row['cost_structure']); ?></span>
+                </td>
+                <td class="px-6 py-3 whitespace-nowrap align-middle">
+                  <span class="font-mono text-sm text-gray-500 dark:text-blue-500"><?php echo htmlspecialchars($row['classification']); ?></span>
+                </td>                
+              </tr>
+            <?php endforeach; ?>
+          <?php endif; ?>
+        </tbody>
+      </table>
+      <!-- End Table -->
+
+      <!-- Footer (Pagination) -->
+      <div class="px-6 py-4 grid gap-3 md:flex md:justify-between md:items-center border-t border-gray-200 dark:border-neutral-700">
+        <div>
+          <p class="text-sm text-gray-600 dark:text-neutral-400">
+            <span class="font-semibold text-gray-800 dark:text-neutral-200"><?php echo $totalRows; ?></span> result<?php echo $totalRows == 1 ? '' : 's'; ?>
+          </p>
+        </div>
+        <div class="inline-flex gap-x-2">
+          <!-- Prev button -->
+          <a href="?q=<?php echo urlencode($search); ?>&page=<?php echo max($page - 1, 1); ?>&sort=<?php echo urlencode($sort); ?>&order=<?php echo urlencode($order); ?>&status=<?php echo urlencode($statusFilter); ?>"
+           class="py-1.5 px-2 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 <?php echo $page == 1 ? 'opacity-50 pointer-events-none' : ''; ?> dark:bg-transparent dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:focus:bg-neutral-800">
+           <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path d="m15 18-6-6 6-6"/>
+          </svg>
+          Prev
+        </a>
+        <!-- Next button -->
+        <a href="?q=<?php echo urlencode($search); ?>&page=<?php echo min($page + 1, $totalPages); ?>&sort=<?php echo urlencode($sort); ?>&order=<?php echo urlencode($order); ?>&status=<?php echo urlencode($statusFilter); ?>"
+         class="py-1.5 px-2 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 <?php echo $page == $totalPages || $totalPages == 0 ? 'opacity-50 pointer-events-none' : ''; ?> dark:bg-transparent dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:focus:bg-neutral-800">
+         Next
+         <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path d="m9 18 6-6-6-6"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+  <!-- End Footer -->
+
+</div>
 </div>
 </div>
 </div>
 <!-- End Card -->
-
-</div>
-</div>
-<!-- End Content -->
 
 
 

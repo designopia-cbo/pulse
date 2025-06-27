@@ -51,6 +51,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ':userid' => $profile_userid
         ]);
 
+        // Step 5: Delete from users table where userid matches
+        $deleteUser = $pdo->prepare("DELETE FROM users WHERE userid = :userid");
+        $deleteUser->execute([
+            ':userid' => $profile_userid
+        ]);
+
         $pdo->commit();
         echo json_encode(['success' => true]);
     } catch (Exception $e) {
@@ -65,6 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $userid = $_SESSION['userid'];
 $profile_userid = (isset($_GET['userid']) && is_numeric($_GET['userid'])) ? intval($_GET['userid']) : $userid;
 ?>
+
 <div id="hs-separate-modal" class="hs-overlay hidden size-full fixed top-0 start-0 z-80 overflow-x-hidden overflow-y-auto pointer-events-none" role="dialog" tabindex="-1" aria-labelledby="hs-separate-modal-label">
   <div class="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all md:max-w-2xl md:w-full m-3 md:mx-auto">
     <form id="separate-employee-form" class="flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl pointer-events-auto dark:bg-neutral-800 dark:border-neutral-700 dark:shadow-neutral-700/70" autocomplete="off">

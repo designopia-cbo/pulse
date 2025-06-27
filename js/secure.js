@@ -13,22 +13,22 @@ document.addEventListener("keydown", event => {
 });
 
 // Prevent text selection & copying
-document.addEventListener("selectstart", event => event.preventDefault());
-document.addEventListener("copy", event => event.preventDefault());
-document.addEventListener("cut", event => event.preventDefault());
-document.addEventListener("paste", event => event.preventDefault());
+//document.addEventListener("selectstart", event => event.preventDefault());
+//document.addEventListener("copy", event => event.preventDefault());
+//document.addEventListener("cut", event => event.preventDefault());
+//document.addEventListener("paste", event => event.preventDefault());
 
 // Block drag-and-drop functionality
 document.addEventListener("dragstart", event => event.preventDefault());
 
-// DevTools detection with alert
+// DevTools detection with forced logout
 (function() {
     let devtoolsCheck = setInterval(() => {
-        console.log("Checking DevTools...");
         let startTime = performance.now();
         debugger;
         if (performance.now() - startTime > 100) {
-            fetch('/pulse/report_security.php', { method: 'POST' }); // Notify backend (Optional)
+            // Force logout: break session by redirecting to logout.php
+            window.location.href = "/pulse/logout";
             clearInterval(devtoolsCheck);
         }
     }, 1000);
@@ -62,7 +62,7 @@ let timeout;
 function resetTimer() {
     clearTimeout(timeout);
     timeout = setTimeout(() => {
-        window.location.href = "/pulse/logout.php"; // Redirect to logout
+        window.location.href = "/pulse/logout"; // Redirect to logout
     }, 300000); // 5 minutes (300000 ms)
 }
 

@@ -25,7 +25,7 @@ unset($_SESSION['error_message']); // Clear error message
 <div class="mt-7 bg-white border border-gray-200 rounded-xl shadow-lg dark:bg-neutral-900 dark:border-neutral-700 p-6 sm:p-7 w-96">
     <div class="text-center">
         <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
-            <h1 class="text-3xl font-bold" style="color: #155dfc;">
+            <h1 class="text-4xl font-bold text-blue-600">
                 MSSD PULSE
             </h1>
         <p class="mt-2 text-sm text-gray-600 dark:text-neutral-400">
@@ -97,9 +97,7 @@ unset($_SESSION['error_message']); // Clear error message
 
                 <!-- Forgot Password Link -->
                 <div class="flex justify-end">
-                    <a href="#" class="text-sm text-blue-600 hover:underline dark:text-blue-500">
-                        Forgot Password?
-                    </a>
+                    
                 </div>
 
                 <!-- Submit Button -->

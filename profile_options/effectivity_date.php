@@ -111,11 +111,11 @@ $date_appointment = $row && !empty($row['date_appointment']) && $row['date_appoi
             <div>
               <input type="hidden" id="employment_details_id" name="employment_details_id" value="<?= htmlspecialchars($employment_details_id) ?>">
               <label for="oldassumption" class="inline-block text-sm font-normal dark:text-white">Date of Assumption</label>
-              <input type="date" id="oldassumption" name="date_of_assumption" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400" value="<?= htmlspecialchars($date_of_assumption) ?>" readonly>
+              <input type="date" id="oldassumption" name="date_of_assumption" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 disabled:opacity-50 disabled:pointer-events-none shadow-2xs sm:text-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400" value="<?= htmlspecialchars($date_of_assumption) ?>" readonly>
             </div>
             <div>
               <label for="oldappointment" class="inline-block text-sm font-normal dark:text-white">Date of Appointment</label>
-              <input type="date" id="oldappointment" name="date_appointment" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400" value="<?= htmlspecialchars($date_appointment) ?>" readonly>
+              <input type="date" id="oldappointment" name="date_appointment" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 disabled:opacity-50 disabled:pointer-events-none shadow-2xs sm:text-sm rounded-lg dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400" value="<?= htmlspecialchars($date_appointment) ?>" readonly>
             </div>
           </div>
         </div>

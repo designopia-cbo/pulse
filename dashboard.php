@@ -332,6 +332,19 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
         </li>
 
         <li>
+          <?php if (isset($_SESSION['level']) && $_SESSION['level'] === 'ADMINISTRATOR'): ?>
+            <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-700 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-white" href="plantilla">
+              <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                <path d="M2 14h20"/>
+                <path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+              </svg>                        
+              Plantilla
+            </a>
+          <?php endif; ?>
+        </li>
+
+        <li>
           <?php if (
             isset($_SESSION['level'], $_SESSION['category']) &&
             $_SESSION['level'] === 'ADMINISTRATOR' &&
@@ -469,9 +482,11 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
         <!-- Plantilla Data Section -->
         <div class="px-2 pb-2">
             <div class="pb-2 flex justify-between items-center">
-              <p class="text-xs uppercase text-gray-500 dark:text-neutral-500">
-                Total Plantilla
-              </p>
+              <a href="plantilla">
+                <p class="text-xs uppercase text-gray-500 dark:text-neutral-500">
+                  Total Plantilla
+                </p>
+              </a>
               <h4 class="text-lg font-semibold leading-tight text-gray-800 dark:text-neutral-200">
                 <?php echo $totalPlantilla; ?>
               </h4>
@@ -562,31 +577,37 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
     <!-- End Grid -->
 
 
-    <?php if ( isset($_SESSION['level'], $_SESSION['category']) && $_SESSION['level'] === 'ADMINISTRATOR' && in_array($_SESSION['category'], ['HR', 'MINISTER']) ): ?>
+      <?php if ( isset($_SESSION['level'], $_SESSION['category']) && $_SESSION['level'] === 'ADMINISTRATOR' && in_array($_SESSION['category'], ['HR', 'MINISTER']) ): ?>
 
-    <!-- Grid -->
-    <div class="grid sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6">    
+      <!-- Grid: 2 columns -->
+      <div class="grid sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6">    
 
-    <!-- Card -->
-    <div class="flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl dark:bg-neutral-900 dark:border-neutral-800">
-      <div class="p-4 md:p-5 flex flex-col gap-y-4">
-        <?php include __DIR__ . '/charts/barchart_workforce.php'; ?>
-      </div>
-    </div>
-    <!-- End Card -->
-
-      <!-- Main Card -->
-      <div class="flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl dark:bg-neutral-900 dark:border-neutral-800">
-        <div class="p-4 md:p-6">
-          <?php include __DIR__ . '/charts/chart_auditlog.php'; ?>
+        <!-- Card -->
+        <div class="flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl dark:bg-neutral-900 dark:border-neutral-800">
+          <div class="p-4 md:p-5 flex flex-col gap-y-4">
+            <?php include __DIR__ . '/charts/barchart_workforce.php'; ?>
+          </div>
         </div>
-      </div>
-      <!-- End Main Card -->
-      
+        <!-- End Card -->
 
-    </div>
-    <!-- End Grid -->
-    <?php endif; ?>
+        <!-- Main Card -->
+        <div class="flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl dark:bg-neutral-900 dark:border-neutral-800">
+          <div class="p-4 md:p-6">
+            <?php include __DIR__ . '/charts/chart_auditlog.php'; ?>
+          </div>
+        </div>
+        <!-- End Main Card -->
+
+      </div>
+      <!-- End Grid -->
+
+      <!-- Tardiness Card -->
+
+      <?php include __DIR__ . '/charts/tardiness_tracker.php'; ?>
+
+      <!-- End Tardiness Card -->
+
+      <?php endif; ?>
 
 <!-- Card -->
 <div class="flex flex-col">

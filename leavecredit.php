@@ -349,6 +349,19 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
       </li>
 
       <li>
+          <?php if (isset($_SESSION['level']) && $_SESSION['level'] === 'ADMINISTRATOR'): ?>
+            <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-700 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-white" href="plantilla">
+              <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                <path d="M2 14h20"/>
+                <path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+              </svg>                        
+              Plantilla
+            </a>
+          <?php endif; ?>
+        </li>
+
+      <li>
         <?php if (
           isset($_SESSION['level'], $_SESSION['category']) &&
           $_SESSION['level'] === 'ADMINISTRATOR' &&
@@ -578,7 +591,7 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
                 <td class="px-4 py-3 whitespace-nowrap text-end align-middle">
                   <div class="flex gap-2 justify-end">
                     <!-- Dropdown -->
-                    <?php if ($userLevel === 'ADMINISTRATOR' && $userCategory === 'HR'): ?>
+                    <?php if ($userLevel === 'ADMINISTRATOR' && $userCategory === 'SUPERADMIN'): ?>
                     <div class="hs-dropdown relative inline-flex">
                       <button type="button" class="hs-dropdown-toggle flex justify-center items-center size-9 text-sm font-semibold rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
                         <svg class="flex-none size-4 text-gray-600" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
