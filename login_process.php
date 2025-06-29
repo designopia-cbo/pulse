@@ -1,42 +1,35 @@
 <?php
-// Move ini_set() to the top of the file
-ini_set('session.cookie_secure', '1');
-ini_set('session.cookie_httponly', '1');
-ini_set('session.use_strict_mode', '1');
+// Show errors for debugging (remove on production)
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
-session_start(); // Start session after the ini_set() adjustments
-
-// Include the DB connection
-require_once('config/db_connection.php');
+require_once('init.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validate CSRF token
     if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-        die('Invalid CSRF token');
+        $_SESSION['error_message'] = "Invalid CSRF token. Please try again.";
+        header("Location: login");
+        exit;
     }
 
-    // Sanitize and validate inputs
     $inputUsername = filter_var($_POST['username'], FILTER_SANITIZE_STRING);
     $inputPassword = filter_var($_POST['password'], FILTER_SANITIZE_STRING);
 
-    // Query database for the user, now including 'category'
     $stmt = $pdo->prepare("SELECT id, completename, username, password, branch, level, category, userid FROM users WHERE username = :username");
     $stmt->bindParam(':username', $inputUsername);
     $stmt->execute();
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($user && password_verify($inputPassword, $user['password'])) {
-        // Regenerate session ID
         session_regenerate_id(true);
-
-        // Save user data in session, including 'category'
         $_SESSION['userid'] = $user['userid'];
         $_SESSION['username'] = $user['username'];
         $_SESSION['completename'] = $user['completename'];
         $_SESSION['level'] = $user['level'];
         $_SESSION['category'] = $user['category'];
 
-        // Redirect based on the user's level
         if ($user['level'] === 'ADMINISTRATOR') {
             header("Location: dashboard");
         } else {
@@ -44,10 +37,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         exit;
     } else {
-        // Invalid credentials
         $_SESSION['error_message'] = "Invalid login credentials. Please try again.";
         header("Location: login");
         exit;
     }
+} else {
+    header("Location: login");
+    exit;
 }
 ?>

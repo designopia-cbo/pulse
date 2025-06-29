@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once('init.php');
 
 // Generate CSRF token if not already set
 if (empty($_SESSION['csrf_token'])) {
@@ -32,9 +32,7 @@ unset($_SESSION['error_message']); // Clear error message
             Personnel and Unified Labor Services Engine
         </p>
 
-        
         <hr class="my-6 border-t border-gray-300 dark:border-neutral-700">
-
 
         <!-- Error Message -->
         <?php if (!empty($error_message)): ?>
@@ -82,7 +80,7 @@ unset($_SESSION['error_message']); // Clear error message
                       </svg>
                       <!-- Eye Off Icon (hidden by default) -->
                       <svg class="shrink-0 size-3.5 eye-off-icon hidden" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M17.94 17.94A10.43 10.43 0 0 1 12 19c-7 0-10-7-10-7a17.7 17.7 0 0 1 4.56-5.94"></path>
+                        <path d="M17.94 17.94A10.43 10.43 0 0 1 12 19c-7 0-10-7-10-7a17.7 17.7 0 0 1-1.67-2.68"></path>
                         <path d="m1 1 22 22"></path>
                         <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path>
                         <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path>
@@ -93,20 +91,12 @@ unset($_SESSION['error_message']); // Clear error message
                 </div>
                 <!-- End Password Field -->
 
-                
-
-                <!-- Forgot Password Link -->
-                <div class="flex justify-end">
-                    
-                </div>
-
                 <!-- Submit Button -->
                 <button type="submit" class="w-full py-3 px-4 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500">Sign in</button>
             </div>
         </form>
     </div>
 </div>
-
 
 <script>
 function togglePasswordVisibility(inputId, btn) {
