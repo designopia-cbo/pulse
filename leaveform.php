@@ -89,6 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 <!DOCTYPE html>
 <html lang="en">
 <head>  
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">  
   <title>HRIS | Leave Form</title>
   <link rel="stylesheet" href="https://preline.co/assets/css/main.min.css">
 </head>

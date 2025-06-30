@@ -15,6 +15,8 @@ unset($_SESSION['error_message']); // Clear error message
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">  
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HRIS | Login</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/preline@latest/dist/preline.css">
@@ -90,6 +92,8 @@ unset($_SESSION['error_message']); // Clear error message
                   </div>
                 </div>
                 <!-- End Password Field -->
+
+                <div class="py-1"></div>
 
                 <!-- Submit Button -->
                 <button type="submit" class="w-full py-3 px-4 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500">Sign in</button>

@@ -115,7 +115,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
 
         // 5. Insert into credit_leave table (only userid, leave columns default to NULL)
-        $stmt = $pdo->prepare("INSERT INTO credit_leave (userid) VALUES (?)");
+        $stmt = $pdo->prepare("
+            INSERT INTO credit_leave (
+                userid, vacationleave, forceleave, sickleave, maternityleave, paternityleave,
+                spleave, soloparentleave, studyleave, vawcleave, rehabilitationprivilege,
+                spleavewomen, calamityleave, adoptionleave, leavewopa, others
+            ) VALUES (
+                ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+            )
+        ");
         $stmt->execute([$employee_id]);
 
         // 6. Insert into users table (mimic credit_leave logic: unconditional insert)
@@ -123,8 +131,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $middle_initial = $middle_name ? initial($middle_name) . '.' : '';
         $suffix_str = $suffix ? " $suffix" : '';
         $completename = to_upper(trim("$first_name $middle_initial $last_name$suffix_str"));
-        // Construct username: first letter of first_name + '.' + last_name (all lowercase)
-        $username = to_lower(initial($first_name) . '.' . $last_name);
+
+        // Construct username: first letter of first_name + '.' + last_name (all lowercase) and day from date of birth
+        // Get the initial of the first name (lowercase, no spaces)
+        $initial = strtolower(str_replace(' ', '', substr($first_name, 0, 1)));
+
+        // Get the last name (lowercase, no spaces)
+        $last = strtolower(str_replace(' ', '', $last_name));
+
+        // Get the day from the birthdate (expects 'YYYY-MM-DD' format)
+        $day = date('d', strtotime($birthdate));
+
+        // Build the username (no spaces)
+        $username = $initial . '.' . $last . $day;
+
         // Default password (as provided)
         $default_password = '$2a$12$vSdcDcGDBc9bAgcwqTX0c.v8WX3fO.wjmlOdM/HovdJd0OpEIO0qy';
         $branch = $office;
@@ -153,6 +173,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <!DOCTYPE html>
   <html lang="en">
   <head>  
+    <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1"> 
 
 <!-- Title -->
 <title> HRIS | Add Employee</title>

@@ -203,6 +203,8 @@ function capitalize($text) {
 <!DOCTYPE html>
 <html lang="en">
 <head>  
+    <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1"> 
   <title>HRIS | Leave Details</title>
   <link rel="stylesheet" href="https://preline.co/assets/css/main.min.css">
 </head>
