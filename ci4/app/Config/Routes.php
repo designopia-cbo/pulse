@@ -70,10 +70,10 @@ $routes->group('reports', ['filter' => 'auth'], function ($routes) {
 });
 
 // Admin routes
-$routes->group('admin', ['filter' => 'auth|admin'], function ($routes) {
-    $routes->get('users', 'AdminController::users');
-    $routes->get('system', 'AdminController::system');
-    $routes->get('backup', 'AdminController::backup');
+$routes->group('admin', ['filter' => 'auth'], function ($routes) {
+    $routes->get('users', 'AdminController::users', ['filter' => 'admin']);
+    $routes->get('system', 'AdminController::system', ['filter' => 'admin']);
+    $routes->get('backup', 'AdminController::backup', ['filter' => 'admin']);
 });
 
 // API routes (for AJAX endpoints)

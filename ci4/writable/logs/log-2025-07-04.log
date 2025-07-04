@@ -1,0 +1,59 @@
+CRITICAL - 2025-07-04 12:48:02 --> CodeIgniter\Filters\Exceptions\FilterException: "auth|admin" filter must have a matching alias defined.
+[Method: CLI, Route: routes]
+in SYSTEMPATH/Filters/Filters.php on line 590.
+ 1 SYSTEMPATH/Filters/Filters.php(590): CodeIgniter\Filters\Exceptions\FilterException::forNoAlias()
+ 2 SYSTEMPATH/Filters/Filters.php(641): CodeIgniter\Filters\Filters->enableFilter()
+ 3 SYSTEMPATH/Commands/Utilities/Routes/FilterFinder.php(58): CodeIgniter\Filters\Filters->enableFilters()
+ 4 SYSTEMPATH/Commands/Utilities/Routes/FilterCollector.php(78): CodeIgniter\Commands\Utilities\Routes\FilterFinder->find()
+ 5 SYSTEMPATH/Commands/Utilities/Routes.php(113): CodeIgniter\Commands\Utilities\Routes\FilterCollector->get()
+ 6 SYSTEMPATH/CLI/Commands.php(74): CodeIgniter\Commands\Utilities\Routes->run()
+ 7 SYSTEMPATH/CLI/Console.php(47): CodeIgniter\CLI\Commands->run()
+ 8 SYSTEMPATH/Boot.php(388): CodeIgniter\CLI\Console->run()
+ 9 SYSTEMPATH/Boot.php(133): CodeIgniter\Boot::runCommand()
+10 ROOTPATH/spark(87): CodeIgniter\Boot::bootSpark()
+CRITICAL - 2025-07-04 12:48:23 --> ErrorException: fwrite(): Write of 47 bytes failed with errno=32 Broken pipe
+[Method: CLI, Route: routes]
+in SYSTEMPATH/CLI/InputOutput.php on line 78.
+ 1 [internal function]: CodeIgniter\Debug\Exceptions->errorHandler()
+ 2 SYSTEMPATH/CLI/InputOutput.php(78): fwrite()
+ 3 SYSTEMPATH/CLI/CLI.php(1130): CodeIgniter\CLI\InputOutput->fwrite()
+ 4 SYSTEMPATH/CLI/CLI.php(469): CodeIgniter\CLI\CLI::fwrite()
+ 5 SYSTEMPATH/Commands/Utilities/Routes.php(214): CodeIgniter\CLI\CLI::write()
+ 6 SYSTEMPATH/Commands/Utilities/Routes.php(199): CodeIgniter\Commands\Utilities\Routes->showRequiredFilters()
+ 7 SYSTEMPATH/CLI/Commands.php(74): CodeIgniter\Commands\Utilities\Routes->run()
+ 8 SYSTEMPATH/CLI/Console.php(47): CodeIgniter\CLI\Commands->run()
+ 9 SYSTEMPATH/Boot.php(388): CodeIgniter\CLI\Console->run()
+10 SYSTEMPATH/Boot.php(133): CodeIgniter\Boot::runCommand()
+11 ROOTPATH/spark(87): CodeIgniter\Boot::bootSpark()
+CRITICAL - 2025-07-04 12:48:23 --> ErrorException: Uncaught ErrorException: fwrite(): Write of 17 bytes failed with errno=32 Broken pipe in /home/runner/work/pulse/pulse/ci4/system/CLI/InputOutput.php:78
+Stack trace:
+#0 [internal function]: CodeIgniter\Debug\Exceptions->errorHandler()
+#1 /home/runner/work/pulse/pulse/ci4/system/CLI/InputOutput.php(78): fwrite()
+#2 /home/runner/work/pulse/pulse/ci4/system/CLI/CLI.php(1130): CodeIgniter\CLI\InputOutput->fwrite()
+#3 /home/runner/work/pulse/pulse/ci4/system/CLI/CLI.php(469): CodeIgniter\CLI\CLI::fwrite()
+#4 /home/runner/work/pulse/pulse/ci4/app/Views/errors/cli/error_exception.php(6): CodeIgniter\CLI\CLI::write()
+#5 /home/runner/work/pulse/pulse/ci4/system/Debug/BaseExceptionHandler.php(266): include('...')
+#6 /home/runner/work/pulse/pulse/ci4/system/Debug/BaseExceptionHandler.php(269): CodeIgniter\Debug\BaseExceptionHandler->CodeIgniter\Debug\{closure}()
+#7 /home/runner/work/pulse/pulse/ci4/system/Debug/ExceptionHandler.php(116): CodeIgniter\Debug\BaseExceptionHandler->render()
+#8 /home/runner/work/pulse/pulse/ci4/system/Debug/Exceptions.php(162): CodeIgniter\Debug\ExceptionHandler->handle()
+#9 [internal function]: CodeIgniter\Debug\Exceptions->exceptionHandler()
+#10 {main}
+  thrown
+【Previous Exception】
+ErrorException
+fwrite(): Write of 47 bytes failed with errno=32 Broken pipe
+#0 [internal function]: CodeIgniter\Debug\Exceptions->errorHandler()
+#1 /home/runner/work/pulse/pulse/ci4/system/CLI/InputOutput.php(78): fwrite()
+#2 /home/runner/work/pulse/pulse/ci4/system/CLI/CLI.php(1130): CodeIgniter\CLI\InputOutput->fwrite()
+#3 /home/runner/work/pulse/pulse/ci4/system/CLI/CLI.php(469): CodeIgniter\CLI\CLI::fwrite()
+#4 /home/runner/work/pulse/pulse/ci4/system/Commands/Utilities/Routes.php(214): CodeIgniter\CLI\CLI::write()
+#5 /home/runner/work/pulse/pulse/ci4/system/Commands/Utilities/Routes.php(199): CodeIgniter\Commands\Utilities\Routes->showRequiredFilters()
+#6 /home/runner/work/pulse/pulse/ci4/system/CLI/Commands.php(74): CodeIgniter\Commands\Utilities\Routes->run()
+#7 /home/runner/work/pulse/pulse/ci4/system/CLI/Console.php(47): CodeIgniter\CLI\Commands->run()
+#8 /home/runner/work/pulse/pulse/ci4/system/Boot.php(388): CodeIgniter\CLI\Console->run()
+#9 /home/runner/work/pulse/pulse/ci4/system/Boot.php(133): CodeIgniter\Boot::runCommand()
+#10 /home/runner/work/pulse/pulse/ci4/spark(87): CodeIgniter\Boot::bootSpark()
+#11 {main}
+[Method: CLI, Route: routes]
+in SYSTEMPATH/CLI/InputOutput.php on line 78.
+ 1 [internal function]: CodeIgniter\Debug\Exceptions->shutdownHandler()
