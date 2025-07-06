@@ -6,7 +6,7 @@ require __DIR__ . '/vendor/autoload.php';
 $level = strtoupper(trim($_SESSION['level'] ?? ''));
 $category = strtoupper(trim($_SESSION['category'] ?? ''));
 
-if ($level !== 'ADMINISTRATOR' || $category !== 'HR') {
+if ($level !== 'ADMINISTRATOR' || ($category !== 'HR' && $category !== 'SUPERADMIN')) {
     session_unset();
     session_destroy();
     header("Location: logout.php");

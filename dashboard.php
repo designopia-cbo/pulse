@@ -5,7 +5,7 @@ require_once('init.php');
 if ($_SESSION['level'] !== 'ADMINISTRATOR') {
     session_unset();
     session_destroy();
-    header("Location: profile");
+    header("Location: login");
     exit;
 }
 
@@ -64,8 +64,6 @@ $totalApplications = $totalApplicationsStmt->fetchColumn();
 
 // Calculate total pages for pagination
 $totalPages = ceil($totalApplications / $rowsPerPage);
-
-
 
 // Fetch dynamic plantilla counts
 $totalPlantillaStmt = $pdo->prepare("SELECT COUNT(*) FROM plantilla_position WHERE pstatus = 1");
@@ -159,6 +157,50 @@ while ($row = $genderStmt->fetch(PDO::FETCH_ASSOC)) {
 }
 $malePercent = $totalActive > 0 ? round(($maleCount / $totalActive) * 100) : 0;
 $femalePercent = $totalActive > 0 ? round(($femaleCount / $totalActive) * 100) : 0;
+
+// leave grant process
+$today = new DateTime();
+$thisMonth = $today->format('Y-m');
+
+// Query to see if leave credits already granted for this month
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM leave_credit_grant_log WHERE grant_month = :month");
+$stmt->execute([':month' => $thisMonth]);
+$alreadyGranted = $stmt->fetchColumn() > 0;
+
+// Default phrase
+$leavePhrase = "";
+
+// Set phrase based on grant status and date
+if ($alreadyGranted) {
+    $leavePhrase = "Leave credits have already been granted for this month.";
+} elseif ($today->format('j') == 1) {
+    $leavePhrase = "You can now grant leave credit for this month.";
+}
+
+$currentDate = date('Y-m-d');
+$currentYear = (int)date('Y');
+
+// Count how many employees are eligible for step increment today
+$countStmt = $pdo->prepare("
+    SELECT COUNT(*) FROM employment_details ed
+    INNER JOIN employee e ON ed.userid = e.id
+    INNER JOIN plantilla_position pp ON ed.position_id = pp.id
+    WHERE ed.edstatus = 1
+      AND ed.step < 8
+      AND ed.date_of_assumption IS NOT NULL
+      AND ed.date_of_assumption != '0000-00-00'
+      AND (
+            DATE_FORMAT(ed.date_of_assumption, '%m-%d') = DATE_FORMAT(:currentDate, '%m-%d')
+        )
+      AND
+        (:currentYear = YEAR(ed.date_of_assumption) + 3 * ed.step)
+");
+$countStmt->execute([
+    ':currentDate' => $currentDate,
+    ':currentYear' => $currentYear
+]);
+$stepIncrementTodayCount = $countStmt->fetchColumn();
+
 ?>
 
 <!DOCTYPE html>
@@ -307,145 +349,9 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
     </a>
     <!-- End Logo -->
   </div>
-  <!-- Content -->
-  <div class="h-full overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-track]:bg-neutral-700 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500">
-    <nav class="hs-accordion-group p-3 w-full flex flex-col flex-wrap" data-hs-accordion-always-open>
-      <ul class="flex flex-col space-y-1">
 
-        <?php if (isset($_SESSION['level']) && $_SESSION['level'] === 'ADMINISTRATOR'): ?>
-        <li>          
-            <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-700 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-white" href="dashboard">
-              <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                <polyline points="9 22 9 12 15 12 15 22" />
-              </svg>
-              Dashboard
-            </a>          
-        </li>
-        <?php endif; ?>
+  <?php include 'includes/sidebar.php'; ?>
 
-        <?php if (isset($_SESSION['level']) && $_SESSION['level'] === 'ADMINISTRATOR'): ?>
-        <li>          
-            <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-700 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-white" href="employeelist">
-              <svg class="size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>                        
-              Employee List
-            </a>          
-        </li>
-        <?php endif; ?>
-
-        <?php if (isset($_SESSION['level'], $_SESSION['category']) && $_SESSION['level'] === 'ADMINISTRATOR' && in_array($_SESSION['category'], ['HR', 'MINISTER']) ): ?>
-        <li>          
-            <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-700 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-white" href="plantilla">
-              <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                <path d="M2 14h20"/>
-                <path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-              </svg>                        
-              Plantilla
-            </a>          
-        </li>
-        <?php endif; ?>
-
-
-        <?php if (
-            isset($_SESSION['level'], $_SESSION['category']) &&
-            $_SESSION['level'] === 'ADMINISTRATOR' &&
-            in_array($_SESSION['category'], ['HR', 'AAO', 'MINISTER'])
-          ): ?>
-        <li>
-          <li class="hs-accordion" id="projects-accordion">
-            <button type="button" class="hs-accordion-toggle w-full text-start flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-neutral-200" aria-expanded="true" aria-controls="projects-accordion-child">
-              <svg class="size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>
-              Employee Leave
-
-              <svg class="hs-accordion-active:block ms-auto hidden size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m18 15-6-6-6 6" />
-              </svg>
-
-              <svg class="hs-accordion-active:hidden ms-auto block size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m6 9 6 6 6-6" />
-              </svg>
-            </button>
-
-            <div id="projects-accordion-child" class="hs-accordion-content w-full overflow-hidden transition-[height] duration-300 hidden" role="region" aria-labelledby="projects-accordion">
-              <ul class="ps-8 pt-1 space-y-1">
-                <li>
-                  <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-neutral-200" href="allleave">
-                    Employee Applications
-                  </a>
-                </li>
-                <li>
-                  <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-neutral-200" href="leavecredit">
-                    Employee Leave Credits
-                  </a>
-                </li>
-                <li> 
-                  <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-neutral-200" href="employeecreditlog">
-                    Credit Logs
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </li>         
-      </li>
-      <?php endif; ?>
-
-      <?php if (isset($_SESSION['level'], $_SESSION['category']) && $_SESSION['level'] === 'ADMINISTRATOR' && in_array($_SESSION['category'], ['HR', 'MINISTER']) ): ?>
-        <li>          
-            <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-700 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-white" href="salarystandardization">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-              </svg>                      
-              Salary Standardization
-            </a>          
-        </li>
-        <?php endif; ?>
-        
-
-      <div class="py-1 flex items-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200  dark:text-white dark:after:border-neutral-600"></div>
-
-
-      <li class="hs-accordion" id="projects-accordion">
-        <button type="button" class="hs-accordion-toggle w-full text-start flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-neutral-200" aria-expanded="true" aria-controls="projects-accordion-child">
-          <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
-            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-          </svg>
-          My Leaves
-
-          <svg class="hs-accordion-active:block ms-auto hidden size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m18 15-6-6-6 6" />
-          </svg>
-
-          <svg class="hs-accordion-active:hidden ms-auto block size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m6 9 6 6 6-6" />
-          </svg>
-        </button>
-
-        <div id="projects-accordion-child" class="hs-accordion-content w-full overflow-hidden transition-[height] duration-300 hidden" role="region" aria-labelledby="projects-accordion">
-          <ul class="ps-8 pt-1 space-y-1">
-            <li>
-              <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-neutral-200" href="leaveform">
-                Apply Leave
-              </a>
-            </li>
-            <li>
-              <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-neutral-200" href="myapplications">
-                My Applications
-              </a>
-            </li>
-            <li> 
-              <a class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-gray-800 rounded-lg hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-neutral-200" href="creditlogs">
-                Credit Logs
-              </a>
-            </li>
-          </ul>
-        </div>
-      </li>            
-    </ul>
-  </nav>
-</div>
-<!-- End Content -->
 </div>
 </div>
 <!-- End Sidebar -->
@@ -486,9 +392,9 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
         <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
       </a>
     </div>
-    <!-- End Card -->
+    <!-- End Card -->   
 
-    <?php if ( isset($_SESSION['level'], $_SESSION['category']) && $_SESSION['level'] === 'ADMINISTRATOR' && in_array($_SESSION['category'], ['HR', 'MINISTER']) ): ?>
+    <?php if ( isset($_SESSION['level'], $_SESSION['category']) && $_SESSION['level'] === 'ADMINISTRATOR' && in_array($_SESSION['category'], ['HR', 'SUPERADMIN', 'MINISTER']) ): ?>
 
       <!-- Card -->
       <div class="flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl dark:bg-neutral-900 dark:border-neutral-800 p-4 md:p-5 min-h-[100px]">  
@@ -539,7 +445,9 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
                         <span class="inline-block w-2 h-2 rounded-full bg-orange-400"></span>
                         <span>To Retire</span>
                     </div>
-                    <div class="font-medium text-sm text-gray-800 dark:text-neutral-200"><?php echo $toRetireCount; ?></div>
+                    <a href="retirees.php" class="font-medium text-sm text-gray-800 dark:text-neutral-200 hover:underline">
+                      <?php echo $toRetireCount; ?>
+                    </a>
                 </div>
             </div>
         </div>
@@ -589,8 +497,69 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
     </div>
     <!-- End Grid -->
 
+    <!-- Grid -->
+    <?php if ( isset($_SESSION['level'], $_SESSION['category']) && $_SESSION['level'] === 'ADMINISTRATOR' && in_array($_SESSION['category'], ['SUPERADMIN']) ): ?>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6">   
+      <!-- Card -->
+      <div class="flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl dark:bg-neutral-900 dark:border-neutral-800">
+        <div class="p-4 md:p-5 flex justify-between gap-x-3">
+          <div>
+            <p class="text-xs uppercase text-gray-500 dark:text-neutral-500">
+              Monthly Leave Credit
+            </p>
+            <div class="mt-1 flex items-center gap-x-2">
+              <p class="text-sm text-gray-600 dark:text-neutral-400">
+                <?php echo $leavePhrase; ?>
+            </p>
+            </div>
+          </div>
+        </div>
 
-      <?php if ( isset($_SESSION['level'], $_SESSION['category']) && $_SESSION['level'] === 'ADMINISTRATOR' && in_array($_SESSION['category'], ['HR', 'MINISTER']) ): ?>
+        <!-- Button Footer (Atl style) -->
+        <div class="mt-auto flex border-t border-gray-200 divide-x divide-gray-200 dark:border-neutral-800 dark:divide-neutral-800">
+          <a id="addLeaveCreditsBtn"
+             class="w-full py-3 px-4 inline-flex justify-center items-center gap-x-2 text-sm font-normal rounded-es-xl bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:text-white dark:hover:bg-neutral-800 dark:focus:bg-neutral-800"
+             href="#"
+             <?php if ($alreadyGranted) echo 'disabled style="pointer-events:none;opacity:0.5;cursor:not-allowed;"'; ?>>
+             Add leave credits
+          </a>
+
+          <a class="w-full py-3 px-4 inline-flex justify-center items-center gap-x-2 text-sm font-normal rounded-ee-xl bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:text-white dark:hover:bg-neutral-800 dark:focus:bg-neutral-800" href="employeecreditlog">
+            View credit log
+          </a>
+        </div>
+        <!-- End Button Footer -->
+      </div>
+      <!-- End Card -->
+
+      <!-- Card -->
+    <div class="flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl dark:bg-neutral-900 dark:border-neutral-800">
+      <div class="p-4 md:p-5 flex justify-between gap-x-3">
+        <div>
+          <p class="text-xs uppercase text-gray-500 dark:text-neutral-500">
+            Employee to step increment today
+          </p>
+          <div class="mt-1 flex items-center gap-x-2">
+            <h3 class="text-lg sm:text-xl font-medium text-gray-800 dark:text-neutral-200">
+              <?php echo $stepIncrementTodayCount; ?>
+            </h3>
+          </div>
+        </div>
+      </div>
+
+      <a class="py-3 px-4 md:px-5 inline-flex justify-between items-center text-sm text-gray-600 border-t border-gray-200 hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 rounded-b-xl dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:focus:bg-neutral-800" href="stepincrement">
+        View step increment
+        <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </a>
+    </div>
+    <!-- End Card -->
+
+    </div>
+    <?php endif; ?>
+    <!-- End Grid -->
+
+
+      <?php if ( isset($_SESSION['level'], $_SESSION['category']) && $_SESSION['level'] === 'ADMINISTRATOR' && in_array($_SESSION['category'], ['HR', 'SUPERADMIN', 'MINISTER']) ): ?>
 
       <!-- Grid: 2 columns -->
       <div class="grid sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6">    
@@ -764,8 +733,37 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
 <!-- Required plugins -->
 <script src="https://cdn.jsdelivr.net/npm/preline/dist/index.js"></script>
 
+<script>
+document.getElementById('addLeaveCreditsBtn').addEventListener('click', function(e) {
+    e.preventDefault();
+    if (!confirm("Are you sure you want to add leave credits for all employees?")) return;
+    this.classList.add('opacity-50', 'pointer-events-none');
+    fetch('/pulse/automation/add_leave_credits', {
+        method: 'POST',
+        headers: {'Accept': 'application/json'}
+    })
+    .then(async res => {
+        const text = await res.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            alert('Server returned invalid JSON. Raw response:\n' + text);
+            window.location.reload();
+            return;
+        }
+        alert(data.message);
+        window.location.reload();
+    })
+    .catch(err => {
+        alert('Network or server error: ' + err);
+        window.location.reload();
+    });
+});
+</script>
 
-<!-- <script src="/pulse/js/secure.js"></script> -->
+
+<script src="/pulse/js/secure.js"></script>
 
 </body>
 </html>

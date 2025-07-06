@@ -1,82 +1,59 @@
-// Disable right-click
+// --- UI/UX Security Measures Harmonized with Server Session ---
+// Disable right-click (optional; can frustrate users)
 document.addEventListener("contextmenu", event => event.preventDefault());
 
-// Block F12, Ctrl+Shift+I, Ctrl+U (View Source)
+// Block F12, Ctrl+Shift+I, Ctrl+U (View Source/DevTools) -- Optional, not bulletproof
 document.addEventListener("keydown", event => {
-    if (event.key === "F12" || 
-        (event.ctrlKey && event.shiftKey && event.key === "I") || 
-        (event.ctrlKey && event.key === "U") || 
-        (event.ctrlKey && event.key === "S") || 
-        (event.ctrlKey && event.key === "A")) {
+    if (
+        event.key === "F12" ||
+        (event.ctrlKey && event.shiftKey && event.key.toUpperCase() === "I") ||
+        (event.ctrlKey && event.key.toUpperCase() === "U")
+    ) {
         event.preventDefault();
     }
 });
 
-// Prevent text selection & copying
-//document.addEventListener("selectstart", event => event.preventDefault());
-//document.addEventListener("copy", event => event.preventDefault());
-//document.addEventListener("cut", event => event.preventDefault());
-//document.addEventListener("paste", event => event.preventDefault());
-
-// Block drag-and-drop functionality
+// Prevent drag-and-drop (optional; prevents accidental file upload/drop)
 document.addEventListener("dragstart", event => event.preventDefault());
 
-// DevTools detection with forced logout
+// Prevent Clickjacking (redundant with server header, but harmless)
+if (window.top !== window.self) {
+    document.body.innerHTML = "<h1>Unauthorized Frame Access!</h1>";
+}
+
+// --- Inactivity Auto-Logout Harmonized with PHP ---
+// Server-side session timeout is 15 minutes (900s); set client-side to match.
+// This will help users be logged out on UI if idle, matching backend logic.
+let inactivityTimeout;
+function resetInactivityTimer() {
+    clearTimeout(inactivityTimeout);
+    inactivityTimeout = setTimeout(() => {
+        window.location.href = "/pulse/logout";
+    }, 900000); // 15 minutes (900,000 ms)
+}
+["mousemove", "keydown", "mousedown", "touchstart"].forEach(evt =>
+    document.addEventListener(evt, resetInactivityTimer)
+);
+resetInactivityTimer();
+
+// --- DevTools Detection ---
+// If DevTools is detected, force logout by redirecting to logout page.
 (function() {
     let devtoolsCheck = setInterval(() => {
         let startTime = performance.now();
         debugger;
         if (performance.now() - startTime > 100) {
-            // Force logout: break session by redirecting to logout.php
             window.location.href = "/pulse/logout";
             clearInterval(devtoolsCheck);
         }
     }, 1000);
 })();
 
-// Prevent Clickjacking (Ensure page can't be embedded in an iframe)
-if (window.top !== window.self) {
-    document.body.innerHTML = "<h1>Unauthorized Frame Access!</h1>";
-}
-
-// Detect Console Access Trick (Monitor if console is open secretly)
-(function() {
-    console.log("%cHidden Console Test", "color: transparent");
-    Object.defineProperty(console, '_commandLineAPI', {
-        get: function() {
-        }
-    });
-})();
-
-// Monitor Suspicious Key Combinations (Prevent security bypass via keys)
-document.addEventListener("keydown", event => {
-    if ((event.ctrlKey && event.key === "J") || // Ctrl+J (Console)
-        (event.ctrlKey && event.key === "K") || // Ctrl+K (DevTools)
-        (event.ctrlKey && event.key === "E")) { // Ctrl+E (Debugger)
-        event.preventDefault();
-    }
-});
-
-// Auto Logout for Inactive Users (5 mins of inactivity)
-let timeout;
-function resetTimer() {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => {
-        window.location.href = "/pulse/logout"; // Redirect to logout
-    }, 300000); // 5 minutes (300000 ms)
-}
-
-document.addEventListener("mousemove", resetTimer);
-document.addEventListener("keydown", resetTimer);
-resetTimer(); // Initialize inactivity tracker
-
-// Basic SQL Injection Prevention (Frontend validation)
+// --- Basic SQL Injection Prevention (Client-side, best effort only) ---
 function preventSQLInjection(input) {
     const forbiddenPatterns = [/--/, /;/, /'/, /"/, /\b(SELECT|INSERT|DELETE|UPDATE|DROP|ALTER)\b/i];
     return forbiddenPatterns.some(pattern => pattern.test(input));
 }
-
-// Apply validation to all input fields
 document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("input, textarea").forEach(input => {
         input.addEventListener("input", event => {

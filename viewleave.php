@@ -130,7 +130,7 @@ if (isset($_GET['id'])) {
     if (
         !$isAllowed &&
         $userLevel === 'ADMINISTRATOR' &&
-        in_array($userCategory, ['HR', 'MINISTER'])
+        in_array($userCategory, ['HR', 'SUPERADMIN', 'MINISTER'])
     ) {
         $isAllowed = true;
     }
