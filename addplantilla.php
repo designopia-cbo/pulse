@@ -41,6 +41,8 @@ $org_units = fetchUniqueDropdownValues($pdo, 'org_unit');
 $offices = fetchUniqueDropdownValues($pdo, 'office');
 $cost_structures = fetchUniqueDropdownValues($pdo, 'cost_structure');
 
+$error = null;
+
 // Form submission handler
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
@@ -72,31 +74,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception("Invalid classification selected.");
         }
 
-        // Set userid to NULL, pstatus to 1
-        $userid_val = null;
-        $pstatus = 1;
+        // Check for duplicate Item Number
+        $dupStmt = $pdo->prepare("SELECT COUNT(*) FROM plantilla_position WHERE item_number = :item_number");
+        $dupStmt->bindParam(':item_number', $item_number);
+        $dupStmt->execute();
+        $exists = $dupStmt->fetchColumn();
 
-        // Prepare and execute the insert
-        $stmt = $pdo->prepare("INSERT INTO plantilla_position 
-            (userid, item_number, position_title, salary_grade, org_unit, office, cost_structure, classification, pstatus) 
-            VALUES (:userid, :item_number, :position_title, :salary_grade, :org_unit, :office, :cost_structure, :classification, :pstatus)");
-        $stmt->bindParam(':userid', $userid_val, PDO::PARAM_NULL);
-        $stmt->bindParam(':item_number', $item_number);
-        $stmt->bindParam(':position_title', $position_title);
-        $stmt->bindParam(':salary_grade', $salary_grade);
-        $stmt->bindParam(':org_unit', $org_unit);
-        $stmt->bindParam(':office', $office);
-        $stmt->bindParam(':cost_structure', $cost_structure);
-        $stmt->bindParam(':classification', $classification);
-        $stmt->bindParam(':pstatus', $pstatus, PDO::PARAM_INT);
-        $stmt->execute();
+        if ($exists > 0) {
+            // Set error message for frontend
+            $error = "The Item Number <strong>" . htmlspecialchars($item_number) . "</strong> already exists.";
+        } else {
+            // Set userid to NULL, pstatus to 1
+            $userid_val = null;
+            $pstatus = 1;
 
-        // Success message or redirect
-        header("Location: plantilla");
-        exit;
+            // Prepare and execute the insert
+            $stmt = $pdo->prepare("INSERT INTO plantilla_position 
+                (userid, item_number, position_title, salary_grade, org_unit, office, cost_structure, classification, pstatus) 
+                VALUES (:userid, :item_number, :position_title, :salary_grade, :org_unit, :office, :cost_structure, :classification, :pstatus)");
+            $stmt->bindParam(':userid', $userid_val, PDO::PARAM_NULL);
+            $stmt->bindParam(':item_number', $item_number);
+            $stmt->bindParam(':position_title', $position_title);
+            $stmt->bindParam(':salary_grade', $salary_grade);
+            $stmt->bindParam(':org_unit', $org_unit);
+            $stmt->bindParam(':office', $office);
+            $stmt->bindParam(':cost_structure', $cost_structure);
+            $stmt->bindParam(':classification', $classification);
+            $stmt->bindParam(':pstatus', $pstatus, PDO::PARAM_INT);
+            $stmt->execute();
+
+            // Success message or redirect
+            header("Location: plantilla");
+            exit;
+        }
     } catch (Exception $e) {
         $error = $e->getMessage();
-        echo "<div style='color:red;'>Error: " . htmlspecialchars($error) . "</div>";
     }
 }
 ?>
@@ -268,6 +280,31 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
           All fields in the form are required.
         </p>
 
+        <?php if (!empty($error)): ?>
+          <div class="bg-red-50 border-s-4 border-red-500 p-4 dark:bg-red-800/30 mb-6" role="alert" tabindex="-1" aria-labelledby="hs-bordered-red-style-label">
+            <div class="flex">
+              <div class="shrink-0">
+                <!-- Icon -->
+                <span class="inline-flex justify-center items-center size-8 rounded-full border-4 border-red-100 bg-red-200 text-red-800 dark:border-red-900 dark:bg-red-800 dark:text-red-400">
+                  <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 6 6 18"></path>
+                    <path d="m6 6 12 12"></path>
+                  </svg>
+                </span>
+                <!-- End Icon -->
+              </div>
+              <div class="ms-3">
+                <h3 id="hs-bordered-red-style-label" class="text-gray-800 font-semibold dark:text-white">
+                  Error!
+                </h3>
+                <p class="text-sm text-gray-700 dark:text-neutral-400">
+                  <?= $error ?>
+                </p>
+              </div>
+            </div>
+          </div>
+        <?php endif; ?>
+
         <form method="post" enctype="multipart/form-data">
           <!-- Grid -->
           <div class="grid sm:grid-cols-12 gap-2 sm:gap-6">
@@ -280,7 +317,7 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
             <div class="sm:col-span-9">
               <input id="item_number" name="item_number" type="text"
                 class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg"
-                placeholder="Enter Item Number" required>
+                placeholder="Enter Item Number" required value="<?= isset($_POST['item_number']) ? htmlspecialchars($_POST['item_number']) : '' ?>">
             </div>
 
             <div class="sm:col-span-3">
@@ -291,7 +328,7 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
             <div class="sm:col-span-9">
               <input id="position_title" name="position_title" type="text"
                 class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg"
-                placeholder="Enter Position Title" required>
+                placeholder="Enter Position Title" required value="<?= isset($_POST['position_title']) ? htmlspecialchars($_POST['position_title']) : '' ?>">
             </div>
 
             <div class="sm:col-span-3">
@@ -302,7 +339,7 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
             <div class="sm:col-span-9">
               <input id="salary_grade" name="salary_grade" type="number" min="0"
                 class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg"
-                placeholder="Enter Salary Grade" required>
+                placeholder="Enter Salary Grade" required value="<?= isset($_POST['salary_grade']) ? htmlspecialchars($_POST['salary_grade']) : '' ?>">
             </div>
 
             <!-- Organizational Unit -->
@@ -315,11 +352,11 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
               <select id="organizational_unit" name="organizational_unit"
                 class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg"
                 onchange="convertField('organizational_unit')" required>
-                <option disabled selected value="">Select Organizational Unit</option>
+                <option disabled value="" <?= !isset($_POST['organizational_unit']) || $_POST['organizational_unit'] === '' ? 'selected' : '' ?>>Select Organizational Unit</option>
                 <?php foreach ($org_units as $val): ?>
-                  <option value="<?= htmlspecialchars($val) ?>"><?= htmlspecialchars($val) ?></option>
+                  <option value="<?= htmlspecialchars($val) ?>" <?= (isset($_POST['organizational_unit']) && $_POST['organizational_unit'] == $val ? 'selected' : '') ?>><?= htmlspecialchars($val) ?></option>
                 <?php endforeach; ?>
-                <option value="other">OTHERS</option>
+                <option value="other" <?= (isset($_POST['organizational_unit']) && $_POST['organizational_unit'] == 'other' ? 'selected' : '') ?>>OTHERS</option>
               </select>
             </div>
 
@@ -333,11 +370,11 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
               <select id="office" name="office"
                 class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg"
                 onchange="convertField('office')" required>
-                <option disabled selected value="">Select Office</option>
+                <option disabled value="" <?= !isset($_POST['office']) || $_POST['office'] === '' ? 'selected' : '' ?>>Select Office</option>
                 <?php foreach ($offices as $val): ?>
-                  <option value="<?= htmlspecialchars($val) ?>"><?= htmlspecialchars($val) ?></option>
+                  <option value="<?= htmlspecialchars($val) ?>" <?= (isset($_POST['office']) && $_POST['office'] == $val ? 'selected' : '') ?>><?= htmlspecialchars($val) ?></option>
                 <?php endforeach; ?>
-                <option value="other">OTHERS</option>
+                <option value="other" <?= (isset($_POST['office']) && $_POST['office'] == 'other' ? 'selected' : '') ?>>OTHERS</option>
               </select>
             </div>
 
@@ -351,11 +388,11 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
               <select id="cost_structure" name="cost_structure"
                 class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg"
                 onchange="convertField('cost_structure')" required>
-                <option disabled selected value="">Select Cost Structure</option>
+                <option disabled value="" <?= !isset($_POST['cost_structure']) || $_POST['cost_structure'] === '' ? 'selected' : '' ?>>Select Cost Structure</option>
                 <?php foreach ($cost_structures as $val): ?>
-                  <option value="<?= htmlspecialchars($val) ?>"><?= htmlspecialchars($val) ?></option>
+                  <option value="<?= htmlspecialchars($val) ?>" <?= (isset($_POST['cost_structure']) && $_POST['cost_structure'] == $val ? 'selected' : '') ?>><?= htmlspecialchars($val) ?></option>
                 <?php endforeach; ?>
-                <option value="other">OTHERS</option>
+                <option value="other" <?= (isset($_POST['cost_structure']) && $_POST['cost_structure'] == 'other' ? 'selected' : '') ?>>OTHERS</option>
               </select>
             </div>
 
@@ -438,10 +475,10 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
             <div class="sm:col-span-9">
               <select id="classification" name="classification"
                 class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg" required>
-                <option disabled selected value="">Select Classification</option>
-                <option>PERMANENT</option>
-                <option>COTERMINOUS</option>
-                <option>COTERMINOUS WITH THE INCUMBENT</option>
+                <option disabled value="" <?= !isset($_POST['classification']) || $_POST['classification'] === '' ? 'selected' : '' ?>>Select Classification</option>
+                <option <?= (isset($_POST['classification']) && $_POST['classification'] == 'PERMANENT' ? 'selected' : '') ?>>PERMANENT</option>
+                <option <?= (isset($_POST['classification']) && $_POST['classification'] == 'COTERMINOUS' ? 'selected' : '') ?>>COTERMINOUS</option>
+                <option <?= (isset($_POST['classification']) && $_POST['classification'] == 'COTERMINOUS WITH THE INCUMBENT' ? 'selected' : '') ?>>COTERMINOUS WITH THE INCUMBENT</option>
               </select>
             </div>
 

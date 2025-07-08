@@ -111,6 +111,7 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     $pstatus = $row['pstatus'] == 1 ? 'ACTIVE' : 'CLOSED';
 
     $plantillaRows[] = [
+        'id' => $row['id'],
         'userid' => $row['userid'],
         'item_number' => $row['item_number'],
         'position_title' => strtoupper($row['position_title']),
@@ -423,6 +424,7 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
           <col style="width: 13%">
           <col style="width: 10%">
           <col style="width: 10%">
+          <col style="width: 8%">
         </colgroup>
         <thead class="bg-gray-50 dark:bg-neutral-800">
           <tr>
@@ -466,34 +468,37 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
                 <?php echo sort_link('Classification', 'classification', $sort, $order, $search, $page, $statusFilter); ?>
               </span>
             </th>
+            <th scope="col" class="px-6 py-3 text-start">
+              <span class="text-xs font-semibold uppercase text-transparent">Action</span>
+            </th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-neutral-700">
           <?php if (count($plantilla) == 0): ?>
             <tr>
-              <td colspan="8" class="ps-6 pe-6 py-3 text-center align-middle text-gray-500 dark:text-neutral-400">
+              <td colspan="9" class="ps-6 pe-6 py-3 text-center align-middle text-gray-500 dark:text-neutral-400">
                 No plantilla positions found.
               </td>
             </tr>
           <?php else: ?>
             <?php foreach ($plantilla as $row): ?>
-                <tr>
-                  <td class="px-6 py-3 whitespace-nowrap align-middle">
-                    <?php if ($row['pstatus'] === 'ACTIVE'): ?>
-                        <span class="py-1 px-1.5 inline-flex items-center gap-x-1 text-xs font-medium bg-teal-100 text-teal-800 rounded-full dark:bg-teal-500/10 dark:text-teal-500">
-                            <svg class="size-2.5" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
-                            </svg>
-                            Active
-                        </span>
-                    <?php else: ?>
-                        <span class="py-1 px-1.5 inline-flex items-center gap-x-1 text-xs font-medium bg-gray-100 text-gray-500 rounded-full dark:bg-gray-700 dark:text-gray-300">
-                          <svg class="size-2.5" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                              <path d="M8 1a7 7 0 1 0 7 7A7.008 7.008 0 0 0 8 1zm0 12a.75.75 0 1 1 0-1.5A.75.75 0 0 1 8 13zm.75-3.25h-1.5V5h1.5z"/>
-                          </svg>
-                          Closed
-                      </span>
-                    <?php endif; ?>
+              <tr>
+                <td class="px-6 py-3 whitespace-nowrap align-middle">
+                  <?php if ($row['pstatus'] === 'ACTIVE'): ?>
+                    <span class="py-1 px-1.5 inline-flex items-center gap-x-1 text-xs font-medium bg-teal-100 text-teal-800 rounded-full dark:bg-teal-500/10 dark:text-teal-500">
+                      <svg class="size-2.5" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+                      </svg>
+                      Active
+                    </span>
+                  <?php else: ?>
+                    <span class="py-1 px-1.5 inline-flex items-center gap-x-1 text-xs font-medium bg-gray-100 text-gray-500 rounded-full dark:bg-gray-700 dark:text-gray-300">
+                      <svg class="size-2.5" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 1a7 7 0 1 0 7 7A7.008 7.008 0 0 0 8 1zm0 12a.75.75 0 1 1 0-1.5A.75.75 0 0 1 8 13zm.75-3.25h-1.5V5h1.5z"/>
+                      </svg>
+                      Closed
+                    </span>
+                  <?php endif; ?>
                 </td>
                 <td class="ps-6 pe-6 py-3 whitespace-nowrap align-middle">
                   <?php if (!empty($row['userid'])): ?>
@@ -523,13 +528,30 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
                 </td>
                 <td class="px-6 py-3 whitespace-nowrap align-middle">
                   <span class="font-mono text-sm text-gray-500 dark:text-blue-500"><?php echo htmlspecialchars($row['classification']); ?></span>
-                </td>                
+                </td>
+
+                <?php if (isset($_SESSION['level'], $_SESSION['category']) 
+                && $_SESSION['level'] === 'ADMINISTRATOR' && in_array($_SESSION['category'], ['SUPERADMIN', 'HR']) ): ?>
+                <td class="px-6 py-3 whitespace-nowrap align-middle">
+                  <a href="editplantilla.php?id=<?= urlencode($row['id']) ?>"
+                     class="w-9 h-9 py-1 px-4 inline-flex justify-center items-center gap-2 rounded-lg border border-gray-200 font-medium bg-white text-gray-700 shadow-2xs align-middle hover:bg-gray-50 focus:outline-none focus:ring-0 transition-all text-sm dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:hover:text-white dark:focus:ring-offset-gray-800"
+                     title="Edit this plantilla position">
+                    <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M17 3a2.828 2.828 0 0 1 4 4L7 21H3v-4L17 3z"/>
+                    </svg>
+                  </a>
+                </td>
+                <?php endif; ?>
+
+                </td>
               </tr>
             <?php endforeach; ?>
           <?php endif; ?>
         </tbody>
       </table>
       <!-- End Table -->
+
 
       <!-- Footer (Pagination) -->
       <div class="px-6 py-4 grid gap-3 md:flex md:justify-between md:items-center border-t border-gray-200 dark:border-neutral-700">
