@@ -393,10 +393,12 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
                   <td class="ps-6 pe-6 py-3 whitespace-nowrap align-middle">
                     <div class="flex items-center gap-x-3">
                       <span class="inline-flex items-center justify-center size-9.5 rounded-full bg-white border border-gray-300 dark:bg-neutral-800 dark:border-neutral-700">
-                        <span class="font-medium text-sm text-gray-800 dark:text-neutral-200"><?php echo strtoupper(substr($emp['fullname'], 0, 1)); ?></span>
+                      <span class="font-medium text-sm text-gray-800 dark:text-neutral-200"><?php echo strtoupper(substr($emp['fullname'], 0, 1)); ?></span>
                       </span>
                       <div class="grow">
-                        <span class="block text-sm font-semibold text-gray-800 dark:text-neutral-200"><?php echo ucwords(strtolower($emp['fullname'])); ?></span>
+                      <a href="profile?userid=<?php echo urlencode($emp['id']); ?>" class="block text-sm font-semibold text-gray-800 dark:text-neutral-200 hover:text-blue-600">
+                        <?php echo ucwords(strtolower($emp['fullname'])); ?>
+                      </a>
                         <span class="text-sm text-gray-500 dark:text-neutral-500"><?php echo isset($emp['position_title']) ? htmlspecialchars($emp['position_title']) : ''; ?></span>
                       </div>
                     </div>

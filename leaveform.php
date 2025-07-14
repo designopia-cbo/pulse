@@ -1,6 +1,40 @@
 <?php
 require_once('init.php');
 
+// Handle signature upload
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'upload_signature') {
+    $userid = $_SESSION['userid'];
+    
+    if (isset($_FILES['signature']) && $_FILES['signature']['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = 'assets/signatures/';
+        $fileName = $userid . '.png';
+        $uploadPath = $uploadDir . $fileName;
+        
+        // Check if the uploaded file is a PNG
+        $fileInfo = getimagesize($_FILES['signature']['tmp_name']);
+        if ($fileInfo !== false && $fileInfo['mime'] === 'image/png') {
+            // Create directory if it doesn't exist
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+            
+            if (move_uploaded_file($_FILES['signature']['tmp_name'], $uploadPath)) {
+                echo json_encode(['status' => 'success', 'message' => 'Signature uploaded successfully.']);
+                exit;
+            } else {
+                echo json_encode(['status' => 'error', 'message' => 'Failed to save signature file.']);
+                exit;
+            }
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Please upload a valid PNG file.']);
+            exit;
+        }
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'No file uploaded or upload error.']);
+        exit;
+    }
+}
+
 // Handle AJAX request for validation and saving
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'validate_and_save_leave') {
     $userid = strtoupper($_POST['userid']); // Convert to uppercase
@@ -12,16 +46,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $total_days = strtoupper($_POST['total_days']); // Convert to uppercase
     $appdate = strtoupper(date('Y-m-d')); // Convert to uppercase
     $leave_status = 1; // Leave status is always integer 1
-
-    // Signature file check (intercept if signature not found)
-    $signature_path = __DIR__ . "/assets/signatures/" . $userid . ".png";
-    if (!file_exists($signature_path)) {
-        echo json_encode([
-            'status' => 'signature_missing',
-            'message' => 'No digital signature found for this user. Please upload your signature to proceed.'
-        ]);
-        exit;
-    }
 
     // Fetch credit leave data for the current user
     $stmt = $pdo->prepare("SELECT * FROM credit_leave WHERE userid = :userid");
@@ -93,7 +117,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     echo json_encode(['status' => 'success', 'message' => 'Leave application submitted successfully.']);
     exit;
 }
+
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>  
@@ -188,62 +214,81 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             </div>
 
             <!-- Buttons -->
-            <div class="flex gap-4 mt-6">
-              <button type="button"
-                      id="back-btn"
-                      class="flex-1 inline-flex items-center justify-center px-4 py-3 rounded-lg bg-gray-400 text-white text-sm font-medium hover:bg-gray-500 focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50"
-                      onclick="history.back()">
-                Back
-              </button>
-
-              <button type="button"
-                      id="applyLeaveBtn"
-                      class="flex-1 inline-flex items-center justify-center px-4 py-3 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-hidden focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none"
-                      aria-haspopup="dialog"
-                      aria-expanded="false"
-                      aria-controls="hs-scale-animation-modal"
-                      data-hs-overlay="#hs-scale-animation-modal">
-                Apply Leave
-              </button>
+            <div class="flex justify-between gap-4 mt-6">
+                <button type="button" id="back-btn" class="w-full py-3 px-4 rounded-lg bg-gray-400 text-white text-sm font-medium hover:bg-gray-500 focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50" onclick="history.back()">
+                    Back
+                </button>
+                <button type="submit" class="w-full py-3 px-4 inline-flex justify-center items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-hidden focus:bg-blue-700 disabled:opacity-50" aria-haspopup="dialog" aria-expanded="false" aria-controls="hs-scale-animation-modal">Apply Leave</button>    
             </div>
         </form>
-
-<!-- Modal -->
-        <div id="hs-scale-animation-modal" class="hs-overlay hidden size-full fixed top-0 start-0 z-80 overflow-x-hidden overflow-y-auto pointer-events-none" role="dialog" tabindex="-1" aria-labelledby="hs-scale-animation-modal-label">
-          <div class="hs-overlay-animation-target hs-overlay-open:scale-100 hs-overlay-open:opacity-100 scale-95 opacity-0 ease-in-out transition-all duration-200 sm:max-w-lg sm:w-full m-3 sm:mx-auto min-h-[calc(100%-56px)] flex items-center">
-            <div class="w-full flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl pointer-events-auto dark:bg-neutral-800 dark:border-neutral-700 dark:shadow-neutral-700/70">
-              <div class="flex justify-between items-center py-3 px-4 border-b border-gray-200 dark:border-neutral-700">
-                <h3 id="hs-scale-animation-modal-label" class="font-bold text-gray-800 dark:text-white">
-                  Modal title
-                </h3>
-                <button type="button" class="size-8 inline-flex justify-center items-center gap-x-2 rounded-full border border-transparent bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-hidden focus:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-neutral-400 dark:focus:bg-neutral-600" aria-label="Close" data-hs-overlay="#hs-scale-animation-modal">
-                  <span class="sr-only">Close</span>
-                  <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 6 6 18"></path>
-                    <path d="m6 6 12 12"></path>
-                  </svg>
-                </button>
-              </div>
-              <div class="p-4 overflow-y-auto">
-                <p class="mt-1 text-gray-800 dark:text-neutral-400">
-                  This is a wider card with supporting text below as a natural lead-in to additional content.
-                </p>
-              </div>
-              <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t border-gray-200 dark:border-neutral-700">
-                <button type="button" class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-700 dark:focus:bg-neutral-700" data-hs-overlay="#hs-scale-animation-modal">
-                  Close
-                </button>
-                <button type="button" class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-hidden focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none">
-                  Save changes
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- End Modal -->
-
     </div>
 </div>
+
+<!-- Modal -->
+<div id="hs-scale-animation-modal" class="hs-overlay hidden size-full fixed top-0 start-0 z-80 overflow-x-hidden overflow-y-auto pointer-events-none" role="dialog" tabindex="-1" aria-labelledby="hs-scale-animation-modal-label">
+  <div class="hs-overlay-animation-target hs-overlay-open:scale-100 hs-overlay-open:opacity-100 scale-95 opacity-0 ease-in-out transition-all duration-200 sm:max-w-lg sm:w-full m-3 sm:mx-auto min-h-[calc(100%-56px)] flex items-center">
+    <div class="w-full flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl pointer-events-auto dark:bg-neutral-800 dark:border-neutral-700 dark:shadow-neutral-700/70">
+
+      <!-- Header -->
+      <div class="flex justify-between items-center py-3 px-4 border-b border-gray-200 dark:border-neutral-700">
+        <h3 id="hs-scale-animation-modal-label" class="font-bold text-gray-800 dark:text-white">
+          Upload Signature
+        </h3>
+        <button type="button" class="size-8 inline-flex justify-center items-center gap-x-2 rounded-full border border-transparent bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-hidden focus:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-neutral-400 dark:focus:bg-neutral-600" aria-label="Close" data-hs-overlay="#hs-scale-animation-modal">
+          <span class="sr-only">Close</span>
+          <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6 6 18"></path>
+            <path d="m6 6 12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="p-4 overflow-y-auto space-y-6">
+        <p class="text-sm text-gray-800 dark:text-neutral-400" style="text-align: justify;">
+        To complete your leave application, please upload your digital signature below in PNG format, which will be embedded in your official Leave Application Form and used for internal documentation, approval routing, and record-keeping purposes.
+        </p>
+
+        <div class="grid sm:grid-cols-12 gap-4 items-start">
+          <!-- Label Column -->
+          <div class="sm:col-span-3">
+            <label for="signature-upload" class="inline-block text-sm font-normal text-gray-500 mt-2.5 dark:text-neutral-500">
+              E-Signature
+            </label>
+          </div>
+
+          <!-- Input Column -->
+          <div class="sm:col-span-9">
+            <label for="signature-upload" class="sr-only">Choose file</label>
+            <input type="file" name="signature-upload" id="signature-upload" accept=".png" class="block w-full border border-gray-200 shadow-sm rounded-lg sm:text-sm focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400
+              file:bg-gray-50 file:border-0
+              file:bg-gray-100 file:me-4
+              file:py-2 file:px-4
+              dark:file:bg-neutral-700 dark:file:text-neutral-400">
+          </div>
+        </div>
+
+        <!-- Privacy Disclaimer -->
+        <div class="mt-5 flex">
+          <input type="checkbox" class="shrink-0 mt-0.5 border-gray-300 rounded-sm text-blue-600 checked:border-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-600 dark:checked:bg-blue-500 dark:checked:border-blue-500 dark:focus:ring-offset-gray-800" id="privacy-disclaimer-check">
+          <label for="privacy-disclaimer-check" class="text-sm text-gray-500 ms-2 dark:text-neutral-400">I have read and understood the above disclaimer. I agree and authorize the use of my e-signature for this leave application.</label>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t border-gray-200 dark:border-neutral-700">
+        <button type="button" class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-700 dark:focus:bg-neutral-700" data-hs-overlay="#hs-scale-animation-modal">
+          Close
+        </button>
+        <button type="button" id="save-signature-btn" class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-hidden focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none" disabled>
+          Save changes
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+<!-- End Modal -->
 
 
 <script>
@@ -267,34 +312,78 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        // Send AJAX request for validation and saving
-        const formData = new FormData();
-        formData.append("action", "validate_and_save_leave");
-        formData.append("userid", sessionUserId);
-        formData.append("leave_type", leaveType);
-        formData.append("leave_details", leaveDetails);
-        formData.append("leave_reason", leaveReason);
-        formData.append("start_date", startDate);
-        formData.append("end_date", endDate);
-        formData.append("total_days", totalDays);
-
-        fetch("", {
-            method: "POST",
-            body: formData,
-        })
-            .then((response) => response.json())
-            .then((data) => {
-                if (data.status === "success") {
-                    alert(data.message); // Show success message
-                    window.location.href = "myapplications"; // Redirect to myapplications
+        // Check if signature file exists before proceeding
+        checkSignatureExists(sessionUserId, function(signatureExists) {
+            if (signatureExists) {
+                // Proceed with leave application submission
+                submitLeaveApplication();
+            } else {
+                // Show signature upload modal using multiple methods
+                const modal = document.querySelector('#hs-scale-animation-modal');
+                
+                // Method 1: Try Preline HSOverlay
+                if (modal && window.HSOverlay) {
+                    window.HSOverlay.open(modal);
                 } else {
-                    alert(data.message); // Show error message
+                    // Method 2: Manual overlay opening
+                    modal.classList.remove('hidden');
+                    modal.classList.add('hs-overlay-open');
+                    modal.style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
+                    
+                    // Method 3: Trigger click on a hidden button with data-hs-overlay
+                    const triggerBtn = document.createElement('button');
+                    triggerBtn.setAttribute('data-hs-overlay', '#hs-scale-animation-modal');
+                    triggerBtn.style.display = 'none';
+                    document.body.appendChild(triggerBtn);
+                    triggerBtn.click();
+                    document.body.removeChild(triggerBtn);
                 }
+            }
+        });
+
+        function submitLeaveApplication() {
+            // Send AJAX request for validation and saving
+            const formData = new FormData();
+            formData.append("action", "validate_and_save_leave");
+            formData.append("userid", sessionUserId);
+            formData.append("leave_type", leaveType);
+            formData.append("leave_details", leaveDetails);
+            formData.append("leave_reason", leaveReason);
+            formData.append("start_date", startDate);
+            formData.append("end_date", endDate);
+            formData.append("total_days", totalDays);
+
+            fetch("", {
+                method: "POST",
+                body: formData,
             })
-            .catch((error) => {
-                console.error("Error:", error);
-                alert("An error occurred while processing the leave application.");
-            });
+                .then((response) => response.json())
+                .then((data) => {
+                    if (data.status === "success") {
+                        alert(data.message); // Show success message
+                        window.location.href = "myapplications"; // Redirect to myapplications
+                    } else {
+                        alert(data.message); // Show error message
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error:", error);
+                    alert("An error occurred while processing the leave application.");
+                });
+        }
+
+        function checkSignatureExists(userid, callback) {
+            // Check if signature file exists
+            const img = new Image();
+            img.onload = function() {
+                callback(true);
+            };
+            img.onerror = function() {
+                callback(false);
+            };
+            img.src = `assets/signatures/${userid}.png?${Date.now()}`; // Add timestamp to prevent caching
+        }
     });
 });
 </script>
@@ -555,41 +644,107 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-  // Find the Apply Leave button (change '#applyLeaveBtn' to your button's actual ID or class)
-  const applyLeaveBtn = document.querySelector('#applyLeaveBtn');
-  if (!applyLeaveBtn) return;
+// Handle signature upload modal functionality
+document.addEventListener("DOMContentLoaded", function () {
+    const saveSignatureBtn = document.getElementById("save-signature-btn");
+    const signatureUpload = document.getElementById("signature-upload");
+    const privacyCheck = document.getElementById("privacy-disclaimer-check");
+    const modal = document.querySelector('#hs-scale-animation-modal');
+    const sessionUserId = "<?php echo $_SESSION['userid']; ?>";
 
-  applyLeaveBtn.addEventListener('click', function (e) {
-    // Prevent the default submit action
-    e.preventDefault();
-
-    // Get userid from PHP session
-    const userid = "<?= $_SESSION['userid'] ?>";
-
-    // AJAX request to check the signature file existence
-    fetch('check_signature.php?userid=' + encodeURIComponent(userid))
-      .then(response => response.json())
-      .then(data => {
-        if (data.exists) {
-          // If signature exists, submit the leave form
-          // Replace '#leaveForm' with your form's actual selector
-          document.querySelector('#leaveForm').submit();
+    // Function to check if both conditions are met
+    function checkButtonState() {
+        const hasFile = signatureUpload.files.length > 0;
+        const privacyChecked = privacyCheck.checked;
+        
+        if (hasFile && privacyChecked) {
+            saveSignatureBtn.disabled = false; // Enable the Save changes button
         } else {
-          // Open the modal
-          window.HSOverlay.open(document.getElementById('hs-scale-animation-modal'));
+            saveSignatureBtn.disabled = true; // Disable the Save changes button
         }
-      })
-      .catch(err => {
-        // On error, show modal as fallback
-        window.HSOverlay.open(document.getElementById('hs-scale-animation-modal'));
-      });
-  });
+    }
+
+    // Handle privacy disclaimer checkbox
+    privacyCheck.addEventListener("change", function () {
+        checkButtonState();
+    });
+
+    // Handle file selection
+    signatureUpload.addEventListener("change", function () {
+        checkButtonState();
+    });
+
+    saveSignatureBtn.addEventListener("click", function () {
+        const file = signatureUpload.files[0];
+        
+        if (!file) {
+            alert("Please select a PNG file to upload.");
+            return;
+        }
+
+        if (file.type !== "image/png") {
+            alert("Please upload a PNG file only.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("action", "upload_signature");
+        formData.append("signature", file);
+
+        // Disable the button during upload
+        saveSignatureBtn.disabled = true;
+        saveSignatureBtn.textContent = "Uploading...";
+
+        fetch("", {
+            method: "POST",
+            body: formData,
+        })
+        .then((response) => response.json())
+        .then((data) => {
+            if (data.status === "success") {
+                alert(data.message);
+                // Close the modal using Preline overlay
+                if (window.HSOverlay) {
+                    window.HSOverlay.close(modal);
+                } else {
+                    // Fallback method
+                    modal.classList.add('hidden');
+                    modal.classList.remove('hs-overlay-open');
+                    document.body.style.overflow = '';
+                }
+                // Reset the form
+                signatureUpload.value = "";
+                privacyCheck.checked = false; // Reset privacy checkbox
+                // Try to submit the leave application again
+                document.getElementById("leave-form").dispatchEvent(new Event('submit'));
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch((error) => {
+            console.error("Error:", error);
+            alert("An error occurred while uploading the signature.");
+        })
+        .finally(() => {
+            // Reset button text and check conditions again
+            saveSignatureBtn.textContent = "Save changes";
+            checkButtonState();
+        });
+    });
 });
 </script>
 
-<!-- Required plugins -->
 <script src="https://cdn.jsdelivr.net/npm/preline/dist/index.js"></script>
+
+<script>
+// Initialize Preline components when DOM is loaded
+document.addEventListener("DOMContentLoaded", function () {
+    // Initialize HSOverlay if available
+    if (window.HSOverlay) {
+        window.HSOverlay.init();
+    }
+});
+</script>
 
 </body>
 </html>

@@ -50,6 +50,19 @@ switch ($tab) {
             $mothersmiddlename  = strtoupper($parents['m_middlename']);
             $motherslastname    = strtoupper($parents['m_surename']);
         }
+        
+        // Spouse
+        $stmt = $pdo->prepare("SELECT s_surname, s_firstname, s_middlename FROM spouse_details WHERE userid = :userid LIMIT 1");
+        $stmt->bindParam(':userid', $profile_userid, PDO::PARAM_INT);
+        $stmt->execute();
+        $spouse = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $spousefirstname = $spousemiddlename = $spouselastname = "";
+        if ($spouse) {
+            $spousefirstname   = strtoupper($spouse['s_firstname']);
+            $spousemiddlename  = strtoupper($spouse['s_middlename']);
+            $spouselastname    = strtoupper($spouse['s_surname']);
+        }
         // Children
         $stmt = $pdo->prepare("SELECT c_fullname, c_bday FROM children WHERE userid = :userid ORDER BY c_bday ASC");
         $stmt->bindParam(':userid', $profile_userid, PDO::PARAM_INT);
@@ -149,6 +162,58 @@ switch ($tab) {
                 </dt>
                 <dd class="font-normal text-gray-700 dark:text-neutral-200">
                   <?= htmlspecialchars($motherslastname) ?>
+                </dd>
+              </dl>
+
+            </div>
+          </div>
+          <!-- Col -->
+        </div>
+        <!-- End Grid -->
+
+      </div>
+      <!-- End Invoice -->
+      <div class="py-1 flex items-center text-sm text-gray-500 before:flex-1 before:border-t before:border-gray-200 before:me-6 after:flex-1 after:border-t after:border-gray-200 after:ms-6">Spouse</div>      <hr class="border-8 border-white">
+
+      <!-- Invoice -->
+      <div class="max-w-[85rem] px-4 sm:px-6 lg:px-8 mx-auto my-4 sm:my-10">
+        <!-- Grid -->
+        <div class="grid md:grid-cols-1 gap-3">
+          <div>
+            <div class="grid space-y-3">
+              <dl class="flex flex-col sm:flex-row gap-x-3 text-sm">
+                <dt class="min-w-36 max-w-50 text-gray-500 dark:text-neutral-500 font-semibold">
+                  Spouse's Name
+                </dt>
+                <dd class="font-normal text-gray-700 dark:text-neutral-200">
+
+                </dd>
+              </dl>
+
+              <dl class="flex flex-col sm:flex-row gap-x-3 text-sm">
+                <dt class="min-w-36 max-w-50 text-gray-500 dark:text-neutral-500">
+                  First Name:
+                </dt>
+                <dd class="font-normal text-gray-700 dark:text-neutral-200">
+                  <?= htmlspecialchars($spousefirstname) ?> 
+                </dd>
+              </dl>
+
+              <dl class="flex flex-col sm:flex-row gap-x-3 text-sm">
+                <dt class="min-w-36 max-w-50 text-gray-500 dark:text-neutral-500">
+                  Middle Name:
+                </dt>
+                <dd class="font-normal text-gray-700 dark:text-neutral-200">
+                  <?= htmlspecialchars($spousemiddlename) ?>
+                </dd>
+              </dl>
+
+              <dl class="flex flex-col sm:flex-row gap-x-3 text-sm">
+                <dt class="min-w-36 max-w-50 text-gray-500 dark:text-neutral-500">
+                  Last Name:
+                </dt>
+                <dd class="font-normal text-gray-700 dark:text-neutral-200">
+                  <?= htmlspecialchars($spouselastname) ?>
                 </dd>
               </dl>
 

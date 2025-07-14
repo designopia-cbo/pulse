@@ -19,6 +19,11 @@ switch ($tab) {
         $stmt->execute([$profile_userid]);
         $parent = $stmt->fetch(PDO::FETCH_ASSOC);
 
+        // Get spouse
+        $stmt = $pdo->prepare("SELECT * FROM spouse_details WHERE userid = ?");
+        $stmt->execute([$profile_userid]);
+        $spouse = $stmt->fetch(PDO::FETCH_ASSOC);
+
         // Get children
         $stmt = $pdo->prepare("SELECT * FROM children WHERE userid = ?");
         $stmt->execute([$profile_userid]);
@@ -79,6 +84,49 @@ switch ($tab) {
                   value="<?= htmlspecialchars($parent['m_surename'] ?? '') ?>"
                   class="mb-3 py-1.5 sm:py-2 px-3 block w-full border-gray-200 disabled:opacity-50 disabled:pointer-events-none shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                   placeholder="Enter Last Name" disabled>
+              </div>
+              <div class="col-span-full">
+                <hr class="my-2 border-t border-gray-200 dark:border-neutral-700">
+              </div>
+              <!-- Spouse's Name -->
+              <div class="col-span-full">
+                <label class="block text-sm font-normal text-gray-700 dark:text-neutral-300 mb-2">Spouse's Name</label>
+                <input type="text" name="s_firstname" id="spouse-firstname"
+                  value="<?= htmlspecialchars($spouse['s_firstname'] ?? '') ?>"
+                  class="mb-3 py-1.5 sm:py-2 px-3 block w-full border-gray-200 disabled:opacity-50 disabled:pointer-events-none shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                  placeholder="Enter First Name" disabled>
+                <input type="text" name="s_middlename" id="spouse-middlename"
+                  value="<?= htmlspecialchars($spouse['s_middlename'] ?? '') ?>"
+                  class="mb-3 py-1.5 sm:py-2 px-3 block w-full border-gray-200 disabled:opacity-50 disabled:pointer-events-none shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                  placeholder="Enter Middle Name" disabled>
+                <input type="text" name="s_surname" id="spouse-lastname"
+                  value="<?= htmlspecialchars($spouse['s_surname'] ?? '') ?>"
+                  class="mb-3 py-1.5 sm:py-2 px-3 block w-full border-gray-200 disabled:opacity-50 disabled:pointer-events-none shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                  placeholder="Enter Last Name" disabled>
+              </div>
+              
+              <!-- Spouse's Additional Details -->
+              <div class="col-span-full">
+                <label class="block text-sm font-normal text-gray-700 dark:text-neutral-300 mb-2">Spouse's Additional Information</label>
+                <input type="text" name="occupation" id="spouse-occupation"
+                  value="<?= htmlspecialchars($spouse['occupation'] ?? '') ?>"
+                  class="mb-3 py-1.5 sm:py-2 px-3 block w-full border-gray-200 disabled:opacity-50 disabled:pointer-events-none shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                  placeholder="Enter Occupation" disabled>
+                <input type="text" name="employer_or_business" id="spouse-employer"
+                  value="<?= htmlspecialchars($spouse['employer_or_business'] ?? '') ?>"
+                  class="mb-3 py-1.5 sm:py-2 px-3 block w-full border-gray-200 disabled:opacity-50 disabled:pointer-events-none shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                  placeholder="Enter Employer/Business Name" disabled>
+                <input type="text" name="business_add" id="spouse-business-address"
+                  value="<?= htmlspecialchars($spouse['business_add'] ?? '') ?>"
+                  class="mb-3 py-1.5 sm:py-2 px-3 block w-full border-gray-200 disabled:opacity-50 disabled:pointer-events-none shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                  placeholder="Enter Business Address" disabled>
+                <input type="text" name="s_telno" id="spouse-telephone"
+                  value="<?= htmlspecialchars($spouse['s_telno'] ?? '') ?>"
+                  class="mb-3 py-1.5 sm:py-2 px-3 block w-full border-gray-200 disabled:opacity-50 disabled:pointer-events-none shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                  placeholder="Enter Telephone Number" disabled>
+              </div>
+              <div class="col-span-full">
+                <hr class="my-2 border-t border-gray-200 dark:border-neutral-700">
               </div>
               <!-- Children -->
               <div class="col-span-full">
@@ -149,11 +197,19 @@ switch ($tab) {
 
         case 3: // ELIGIBILITY
     // Fetch eligibility rows for the given user
-    $stmt = $pdo->prepare("SELECT `id`, `eligibility_type`, `rating`, `date_exam`, `place_exam`, `license_number`, `date_validity` 
+    $stmt = $pdo->prepare("SELECT `id`, `eligibility_type`, `rating`, `date_exam`, `place_exam`, `license_number`, `date_validity`, `ra_status`, `ra_type` 
                            FROM `eligibility` WHERE `userid` = ?");
     $stmt->execute([$profile_userid]);
     $eligibilityRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Fetch unique ra_type values for dropdown options
+    $stmt_ra_types = $pdo->prepare("SELECT DISTINCT `ra_type` FROM `eligibility` WHERE `ra_type` IS NOT NULL AND `ra_type` != '' ORDER BY `ra_type`");
+    $stmt_ra_types->execute();
+    $ra_type_options = $stmt_ra_types->fetchAll(PDO::FETCH_COLUMN);
     ?>
+    <script>
+    window.GLOBAL_RA_TYPE_OPTIONS = <?= json_encode($ra_type_options) ?>;
+    </script>
     <!-- Card -->
     <div class="bg-white rounded-xl p-4 sm:p-7 dark:bg-neutral-800">
       <div class="mb-8 flex justify-between items-center">
@@ -183,61 +239,149 @@ switch ($tab) {
           <div class="col-span-full">
             <div id="eligibility-container" class="space-y-3">
               <?php if ($eligibilityRows && count($eligibilityRows) > 0): ?>
-                <?php foreach ($eligibilityRows as $row): ?>
-                  <div class="grid grid-cols-1 sm:grid-cols-6 gap-2 items-center eligibility-row">
-                    <!-- Correct: hidden ID field inside each row -->
+                <?php foreach ($eligibilityRows as $row_index => $row): ?>
+                  <div class="eligibility-row">
+                    <!-- Hidden ID field -->
                     <input type="hidden" name="eligibility_id[]" value="<?= htmlspecialchars($row['id']) ?>">
-                    <input type="text" name="eligibility[]" placeholder="Eligibility Type"
-                      class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg
-                      focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
-                      dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
-                      dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-                      value="<?= htmlspecialchars($row['eligibility_type']) ?>"
-                      disabled>
+                    
+                    <!-- First row: 4 fields on large screens -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
+                      <!-- Eligibility Type -->
+                      <div class="col-span-1">
+                        <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">Eligibility Type</label>
+                        <input type="text" name="eligibility[]" placeholder="Eligibility Type" required
+                          class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+                          focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+                          dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+                          dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                          value="<?= htmlspecialchars($row['eligibility_type']) ?>"
+                          disabled>
+                      </div>
 
-                    <input type="text" name="rating[]" placeholder="Rating"
-                      class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg
-                      focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
-                      dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
-                      dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-                      value="<?= htmlspecialchars($row['rating']) ?>"
-                      disabled>
+                      <!-- Rating -->
+                      <div class="col-span-1">
+                        <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">Rating</label>
+                        <input type="text" name="rating[]" placeholder="Rating" required
+                          class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+                          focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+                          dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+                          dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                          value="<?= htmlspecialchars($row['rating']) ?>"
+                          disabled>
+                      </div>
 
-                    <input type="text" name="exam_date[]" placeholder="Date of Examination"
-                      class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg
-                      focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
-                      dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
-                      dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-                      value="<?= htmlspecialchars($row['date_exam']) ?>"
-                      disabled>
+                      <!-- Date of Examination -->
+                      <div class="col-span-1">
+                        <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">Date of Examination</label>
+                        <input type="text" name="exam_date[]" placeholder="Date of Examination" required
+                          class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+                          focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+                          dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+                          dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                          value="<?= htmlspecialchars($row['date_exam']) ?>"
+                          disabled>
+                      </div>
 
-                    <input type="text" name="exam_place[]" placeholder="Place of Examination"
-                      class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg
-                      focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
-                      dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
-                      dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-                      value="<?= htmlspecialchars($row['place_exam']) ?>"
-                      disabled>
+                      <!-- Place of Examination -->
+                      <div class="col-span-1">
+                        <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">Place of Examination</label>
+                        <input type="text" name="exam_place[]" placeholder="Place of Examination" required
+                          class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+                          focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+                          dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+                          dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                          value="<?= htmlspecialchars($row['place_exam']) ?>"
+                          disabled>
+                      </div>
+                    </div>
 
-                    <input type="text" name="license_no[]" placeholder="License No."
-                      class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg
-                      focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
-                      dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
-                      dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-                      value="<?= htmlspecialchars($row['license_number']) ?>"
-                      disabled>
+                    <!-- Second row: 4 fields on large screens -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
+                      <!-- License Number -->
+                      <div class="col-span-1">
+                        <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">License No.</label>
+                        <input type="text" name="license_no[]" placeholder="License No." required
+                          class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+                          focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+                          dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+                          dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                          value="<?= htmlspecialchars($row['license_number']) ?>"
+                          disabled>
+                      </div>
 
-                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                      <input type="date" name="date_validity[]" placeholder="Date of Validity"
-                        class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg
-                        focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
-                        dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
-                        dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-                        value="<?= htmlspecialchars($row['date_validity']) ?>"
-                        disabled>
+                      <!-- Date of Validity -->
+                      <div class="col-span-1">
+                        <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">Date of Validity</label>
+                        <input type="date" name="date_validity[]" placeholder="Date of Validity" required
+                          class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+                          focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+                          dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+                          dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                          value="<?= htmlspecialchars($row['date_validity']) ?>"
+                          disabled>
+                      </div>
+
+                      <!-- RA Status -->
+                      <div class="col-span-1">
+                        <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">RA Status</label>
+                        <select name="ra_status[]" required
+                          class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+                          focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+                          dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+                          dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                          disabled>
+                          <option value="">RA Status</option>
+                          <option value="YES" <?= (isset($row['ra_status']) && strtoupper($row['ra_status']) === 'YES') ? 'selected' : '' ?>>YES</option>
+                          <option value="NO" <?= (isset($row['ra_status']) && strtoupper($row['ra_status']) === 'NO') ? 'selected' : '' ?>>NO</option>
+                        </select>
+                      </div>
+
+                      <!-- RA Type -->
+                      <div class="col-span-1">
+                        <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">RA Type</label>
+                        <?php 
+                        // Check if ra_type value exists in the dropdown options
+                        $ra_type_value = $row['ra_type'] ?? '';
+                        $is_custom_ra_type = !empty($ra_type_value) && !in_array($ra_type_value, $ra_type_options);
+                        ?>
+                        
+                        <?php if ($is_custom_ra_type): ?>
+                          <!-- Show as input field if it's a custom value -->
+                          <input type="text" name="ra_type[]" 
+                            id="ra_type_<?= $row_index ?>"
+                            value="<?= htmlspecialchars($ra_type_value) ?>"
+                            placeholder="Enter RA Type" required
+                            class="ra-type-input py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+                            focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+                            dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+                            dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                            onblur="if (!this.value.trim()) revertRATypeToDropdown(this, 'ra_type_<?= $row_index ?>', <?= json_encode($ra_type_options) ?>)"
+                            disabled>
+                        <?php else: ?>
+                          <!-- Show as dropdown -->
+                          <select name="ra_type[]" 
+                            id="ra_type_<?= $row_index ?>"
+                            class="ra-type-dropdown py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+                            focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+                            dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+                            dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                            onchange="convertRATypeField('ra_type_<?= $row_index ?>', <?= json_encode($ra_type_options) ?>)"
+                            disabled required>
+                            <option value="">Select RA Type</option>
+                            <?php foreach ($ra_type_options as $option): ?>
+                              <option value="<?= htmlspecialchars($option) ?>" <?= (isset($row['ra_type']) && $row['ra_type'] === $option) ? 'selected' : '' ?>><?= htmlspecialchars($option) ?></option>
+                            <?php endforeach; ?>
+                            <option value="other">OTHERS</option>
+                          </select>
+                        <?php endif; ?>
+                      </div>
+                    </div>
+
+                    <!-- Remove button - below the fields -->
+                    <div class="flex justify-end mb-4">
                       <button type="button" class="remove-eligibility-row flex shrink-0 justify-center items-center gap-2 size-9.5 text-sm font-medium rounded-lg
                         border border-gray-200 bg-white text-gray-800 hover:bg-gray-100
-                        focus:outline-hidden focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 ml-0 sm:ml-1"
+                        focus:outline-hidden focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700"
                         style="display:none" disabled>
                         <svg class="shrink-0 size-3" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                           viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -250,9 +394,9 @@ switch ($tab) {
                         </svg>
                       </button>
                     </div>
-                    <div class="sm:col-span-6 col-span-full">
-                      <hr class="my-4 border-t border-gray-200 dark:border-neutral-700">
-                    </div>
+
+                    <!-- Separator -->
+                    <hr class="my-4 border-t border-gray-200 dark:border-neutral-700">
                   </div>
                 <?php endforeach; ?>
               <?php endif; ?>
@@ -277,7 +421,7 @@ switch ($tab) {
           </div>
 
           <!-- Separator Line -->
-          <div class="sm:col-span-12">
+          <div class="col-span-full">
             <hr class="my-4 border-t border-gray-200 dark:border-neutral-700">
           </div>
         </div>
@@ -295,7 +439,8 @@ switch ($tab) {
         </div>
       </form>
     </div>
-    <!-- End Card -->         
+    <!-- End Card -->
+    
     <?php
     break;
 
@@ -441,8 +586,7 @@ switch ($tab) {
           <button id="edit-voluntary-works-btn" type="button"
             class="hs-dropdown-toggle flex justify-center items-center size-9 text-sm font-semibold rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-800 dark:focus:bg-neutral-800"
             aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
-            <svg class="flex-none size-4 text-gray-600 dark:text-neutral-500" xmlns="http://www.w3.org/2000/svg"
-              width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            <svg class="flex-none size-4 text-gray-600 dark:text-neutral-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
               <path d="M18 2l4 4-14 14H4v-4L18 2z"/>
               <path d="M16 4l4 4"/>
@@ -595,9 +739,7 @@ switch ($tab) {
                       class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 disabled:opacity-50 disabled:pointer-events-none shadow-2xs sm:text-sm rounded-lg"
                       disabled>
                     <button type="button" class="remove-ld-row flex shrink-0 justify-center items-center gap-2 size-9.5 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 hover:bg-gray-100 ml-0 sm:ml-1" style="display:none" disabled>
-                      <svg class="shrink-0 size-3" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
+                      <svg class="shrink-0 size-3" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="3 6 5 6 21 6"></polyline>
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
                         <path d="M10 11v6"></path>
@@ -864,7 +1006,7 @@ switch ($tab) {
         </div>
       </form>
     </div>
-    <!-- End Card -->
+       <!-- End Card -->
     <?php
     break;
 
@@ -1084,9 +1226,9 @@ switch ($tab) {
                     <option value="YES" <?= sel($disclosure['q4'] ?? '', 'YES') ?>>YES</option>
                     <option value="NO" <?= sel($disclosure['q4'] ?? '', 'NO') ?>>NO</option>
                   </select>
-                  <input id="r4_1" name="r4_1" type="text" disabled  value="<?= val($disclosure, 'r4_1') ?>" 
+                  <input id="r4_1" name="r4_1" type="date" disabled  value="<?= val($disclosure, 'r4_1') ?>" 
                     class="py-1.5 sm:py-2 px-3 pe-11 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-                    placeholder="Date Filled:">
+                    placeholder="Date Filed:">
                   <input id="r4_2" name="r4_2" type="text" disabled  value="<?= val($disclosure, 'r4_2') ?>" 
                     class="py-1.5 sm:py-2 px-3 pe-11 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                     placeholder="Status:">
@@ -1342,9 +1484,7 @@ switch ($tab) {
         <button id="edit-references-btn" type="button"
           class="hs-dropdown-toggle flex justify-center items-center size-9 text-sm font-semibold rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-800 dark:focus:bg-neutral-800"
           aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
-          <svg class="flex-none size-4 text-gray-600 dark:text-neutral-500" xmlns="http://www.w3.org/2000/svg"
-            width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
+          <svg class="flex-none size-4 text-gray-600 dark:text-neutral-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 2l4 4-14 14H4v-4L18 2z"/>
             <path d="M16 4l4 4"/>
             <path d="M4 20h4"/>

@@ -45,7 +45,7 @@ $totalRows = count($salaryRows);
   <meta name="viewport" content="width=device-width, initial-scale=1"> 
 
 <!-- Title -->
-<title> HRIS | Plantilla</title>
+<title> HRIS | Salary Standardization</title>
 
 <!-- CSS Preline -->
 <link rel="stylesheet" href="https://preline.co/assets/css/main.min.css">
@@ -156,7 +156,7 @@ $totalRows = count($salaryRows);
         </svg>
       </li>
       <li class="text-sm font-semibold text-gray-800 truncate dark:text-neutral-400" aria-current="page">
-        Plantilla
+        Salary Standardization
       </li>
     </ol>
     <!-- End Breadcrumb -->

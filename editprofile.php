@@ -97,6 +97,7 @@ function compute_age($bday) {
     return $age;
 }
 
+
 // ==============================
 // USER CONTEXT
 // ==============================
@@ -156,15 +157,26 @@ if ($religion && !in_array($religion, $religion_options) && !empty($religion)) {
 
 // Tribe dropdown options
 $tribe_options = [
+    "Aeta",
+    "Bagobo",
+    "Badjao",
+    "B'laan",
+    "Higaonon",
     "Igorot",
     "Ilocano",
-    "Tagalog",
-    "Visayan",
-    "Maranao",
-    "Tausug",
-    "Aeta",
+    "Kalagan",
+    "Kamayo",
+    "Maguindanaon",
     "Manobo",
-    "Badjao",
+    "Maranao",
+    "Matigsalug",
+    "Subanen",
+    "Tagalog",
+    "Talaandig",
+    "Tausug",
+    "Tboli",
+    "Visayan",
+    "Yakan",
     "Others"
 ];
 if ($tribe && !in_array($tribe, $tribe_options) && !empty($tribe)) {
@@ -270,8 +282,8 @@ if ($user) {
 <!DOCTYPE html>
 <html lang="en">
 <head>  
-    <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1"> 
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"> 
 
   <!-- Title -->
   <title> HRIS | Edit Profile </title>
@@ -413,9 +425,9 @@ if ($user) {
         </a>
         <!-- End Logo -->
       </div>
-      
+      <!-- Content -->
       <?php include 'includes/sidebar.php'; ?>
-      
+      <!-- End Content -->
     </div>
   </div>
   <!-- End Sidebar -->
@@ -499,13 +511,15 @@ if ($user) {
         </div>
 
           <form id="edit-profile-form" method="post" autocomplete="off">
+            <!-- Hidden field for profile userid -->
+            <input type="hidden" id="profile_userid" name="profile_userid" value="<?= htmlspecialchars($profile_userid) ?>">
+            
             <!-- Grid -->
             <div class="grid sm:grid-cols-12 gap-2 sm:gap-6">
-            <input type="hidden" name="profile_userid" id="profile_userid" value="<?= htmlspecialchars($profile_userid) ?>">   
               
                 <div class="sm:col-span-3">
                   <label for="af-account-lastname" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                    Last Name
+                    Last Name <span class="text-red-500">*</span>
                   </label>
                 </div>
                 <!-- End Col -->
@@ -517,14 +531,15 @@ if ($user) {
                   type="text" 
                   class="py-1.5 sm:py-2 px-3 pe-11 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600" 
                   placeholder="Enter Last Name "
-                  value="<?= htmlspecialchars($last_name) ?>">
+                  value="<?= htmlspecialchars($last_name) ?>"
+                  required>
                 </div>
                 <!-- End Col -->
 
                 <div class="sm:col-span-3">
                   <div class="inline-block">
                     <label for="af-account-firstname" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                      First Name
+                      First Name <span class="text-red-500">*</span>
                     </label>
                   </div>
                 </div>
@@ -539,16 +554,17 @@ if ($user) {
                       type="text" 
                       class="py-1.5 sm:py-2 px-3 pe-11 block w-full border-gray-200 shadow-2xs -mt-px -ms-px first:rounded-t-lg last:rounded-b-lg sm:first:rounded-s-lg sm:mt-0 sm:first:ms-0 sm:first:rounded-se-none sm:last:rounded-es-none sm:last:rounded-e-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600" 
                       placeholder="Enter First Name"
-                      value="<?= htmlspecialchars($first_name) ?>">
+                      value="<?= htmlspecialchars($first_name) ?>"
+                      required>
 
                     <!-- Suffix dropdown -->
                     <select 
                       id="af-account-suffix"
                       name="suffix"
                       class="py-1.5 sm:py-2 px-3 pe-9 block w-full sm:w-auto border-gray-200 shadow-2xs -mt-px -ms-px first:rounded-t-lg last:rounded-b-lg rounded-bl-lg sm:first:rounded-s-lg sm:mt-0 sm:first:ms-0 sm:first:rounded-se-none sm:last:rounded-es-none sm:last:rounded-e-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
-                      <option disabled <?= empty($suffix) ? 'selected' : '' ?>>Suffix</option>
+                      <option value="" disabled <?= empty($suffix) ? 'selected' : '' ?>>Suffix</option>
                       <?php foreach ($suffix_options as $opt): ?>
-                        <option <?= ($suffix === $opt) ? 'selected' : '' ?>><?= htmlspecialchars($opt) ?></option>
+                        <option value="<?= htmlspecialchars($opt) ?>" <?= ($suffix === $opt) ? 'selected' : '' ?>><?= htmlspecialchars($opt) ?></option>
                       <?php endforeach; ?>
                     </select>
                   </div>
@@ -557,7 +573,7 @@ if ($user) {
 
                 <div class="sm:col-span-3">
                   <label for="af-account-middlename" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                    Middle Name
+                    Middle Name <span class="text-red-500">*</span>
                   </label>
                 </div>
                 <!-- End Col -->
@@ -569,13 +585,14 @@ if ($user) {
                   type="text" 
                   class="py-1.5 sm:py-2 px-3 pe-11 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600" 
                   placeholder="Enter Middle Name"
-                  value="<?= htmlspecialchars($middle_name) ?>">
+                  value="<?= htmlspecialchars($middle_name) ?>"
+                  required>
                 </div>
                 <!-- End Col -->
 
                 <div class="sm:col-span-3">
                   <label for="af-account-dob" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                    Date of Birth
+                    Date of Birth <span class="text-red-500">*</span>
                   </label>
                 </div>
                 <!-- End Col -->
@@ -586,13 +603,14 @@ if ($user) {
                   name="birthdate"
                   type="date"
                   class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-                  value="<?= htmlspecialchars(format_date($birthdate)) ?>">
+                  value="<?= htmlspecialchars(format_date($birthdate)) ?>"
+                  required>
                 </div>
                 <!-- End Col -->
 
                 <div class="sm:col-span-3">
                   <label for="af-account-gender-checkbox" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                    Gender
+                    Gender <span class="text-red-500">*</span>
                   </label>
                 </div>
                 <!-- End Col -->
@@ -607,7 +625,7 @@ if ($user) {
                         class="shrink-0 mt-0.5 border-gray-300 rounded-full text-blue-600 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-500 dark:checked:bg-blue-500 dark:checked:border-blue-500 dark:focus:ring-offset-gray-800" 
                         id="af-account-gender-checkbox-male"
                         <?= (strtolower($gender) === "male") ? "checked" : "" ?>
-                      >
+                        required>
                       <span class="sm:text-sm text-gray-500 ms-3 dark:text-neutral-400">Male</span>
                     </label>
 
@@ -619,7 +637,7 @@ if ($user) {
                         class="shrink-0 mt-0.5 border-gray-300 rounded-full text-blue-600 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-500 dark:checked:bg-blue-500 dark:checked:border-blue-500 dark:focus:ring-offset-gray-800" 
                         id="af-account-gender-checkbox-female"
                         <?= (strtolower($gender) === "female") ? "checked" : "" ?>
-                      >
+                        required>
                       <span class="sm:text-sm text-gray-500 ms-3 dark:text-neutral-400">Female</span>
                     </label>
                   </div>
@@ -628,7 +646,7 @@ if ($user) {
 
                 <div class="sm:col-span-3">
                 <label for="af-account-civilstatus" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                  Civil Status
+                  Civil Status <span class="text-red-500">*</span>
                 </label>
               </div>
               <!-- End Col -->
@@ -638,6 +656,7 @@ if ($user) {
                   id="af-account-civilstatus" 
                   name="civilstatus"
                   class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                  required
                 >
                   <option disabled <?= empty($civilstatus) ? 'selected' : '' ?>>Select Civil Status</option>
                   <?php foreach ($civil_status_options as $opt): ?>
@@ -650,26 +669,28 @@ if ($user) {
               <!-- Citizenship -->
               <div class="sm:col-span-3">
                 <label for="af-account-citizenship" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                  Citizenship
+                  Citizenship <span class="text-red-500">*</span>
                 </label>
               </div>
               <div class="sm:col-span-9">
                 <input id="af-account-citizenship" name="citizenship" type="text"
                   class="py-1.5 sm:py-2 px-3 pe-11 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                   placeholder="Enter Citizenship"
-                  value="<?= htmlspecialchars($citizenship) ?>">
+                  value="<?= htmlspecialchars($citizenship) ?>"
+                  required>
               </div>
 
               <div class="sm:col-span-3">
                 <label for="af-account-religion" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                  Religion
+                  Religion <span class="text-red-500">*</span>
                 </label>
               </div>
               <!-- End Col -->
 
               <div class="sm:col-span-9">
                 <select id="af-account-religion" name="religion"
-                  class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
+                  class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                  required>
                   <option disabled <?= empty($religion) ? 'selected' : '' ?>>Select Religion</option>
                   <?php foreach ($religion_options as $opt): ?>
                     <option <?= ($religion === $opt) ? 'selected' : '' ?>><?= htmlspecialchars($opt) ?></option>
@@ -680,7 +701,7 @@ if ($user) {
 
               <div class="sm:col-span-3">
                 <label for="af-account-tribe" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                  Tribe
+                  Tribe <span class="text-red-500">*</span>
                 </label>
               </div>
               <!-- End Col -->
@@ -688,7 +709,8 @@ if ($user) {
               <div class="sm:col-span-9">
                 <!-- Tribe -->
                 <select id="af-account-tribe" name="tribe"
-                  class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
+                  class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                  required>
                   <option disabled <?= empty($tribe) ? 'selected' : '' ?>>Select Tribe</option>
                   <?php foreach ($tribe_options as $opt): ?>
                     <option <?= ($tribe === $opt) ? 'selected' : '' ?>><?= htmlspecialchars($opt) ?></option>
@@ -699,14 +721,15 @@ if ($user) {
 
               <div class="sm:col-span-3">
                 <label for="af-account-bloodtype" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                  Blood Type
+                  Blood Type <span class="text-red-500">*</span>
                 </label>
               </div>
               <!-- End Col -->
 
               <div class="sm:col-span-9">
                 <select id="af-account-bloodtype" name="blood_type"
-                  class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
+                  class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                  required>
                   <option disabled <?= empty($blood_type) ? 'selected' : '' ?>>Select Blood Type</option>
                   <?php foreach ($blood_type_options as $opt): ?>
                     <option <?= ($blood_type === $opt) ? 'selected' : '' ?>><?= htmlspecialchars($opt) ?></option>
@@ -717,7 +740,7 @@ if ($user) {
 
               <div class="sm:col-span-3">
                 <label for="af-account-height" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                  Height
+                  Height <span class="text-red-500">*</span>
                 </label>
               </div>
               <!-- End Col -->
@@ -726,14 +749,15 @@ if ($user) {
                 <input id="af-account-height" name="height" type="text"
                   class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                   placeholder="Enter Height (e.g. 170 cm)"
-                  value="<?= htmlspecialchars($height) ?>">
+                  value="<?= htmlspecialchars($height) ?>"
+                  required>
               </div>
               <!-- End Col -->
 
 
               <div class="sm:col-span-3">
                 <label for="af-account-weight" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                  Weight
+                  Weight <span class="text-red-500">*</span>
                 </label>
               </div>
               <!-- End Col -->
@@ -742,47 +766,51 @@ if ($user) {
                 <input id="af-account-weight" name="weight" type="text"
                   class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                   placeholder="Enter Weight (e.g. 65 kg)"
-                  value="<?= htmlspecialchars($weight) ?>">
+                  value="<?= htmlspecialchars($weight) ?>"
+                  required>
               </div>
               <!-- End Col -->
 
               <!-- Telephone Number -->
               <div class="sm:col-span-3">
                 <label for="af-account-telephone" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                  Telephone Number
+                  Telephone Number <span class="text-red-500">*</span>
                 </label>
               </div>
               <div class="sm:col-span-9">
                 <input id="af-account-telephone" name="telephoneno" type="text"
                   class="py-1.5 sm:py-2 px-3 pe-11 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                   placeholder="Enter Telephone Number"
-                  value="<?= htmlspecialchars($telephoneno) ?>">
+                  value="<?= htmlspecialchars($telephoneno) ?>"
+                  required>
               </div>
 
               <!-- Email Address -->
               <div class="sm:col-span-3">
                 <label for="af-account-email" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                  Email Address
+                  Email Address <span class="text-red-500">*</span>
                 </label>
               </div>
               <div class="sm:col-span-9">
                 <input id="af-account-email" name="emailaddress" type="email"
                   class="py-1.5 sm:py-2 px-3 pe-11 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                   placeholder="e.g., mike@gmail."
-                  value="<?= htmlspecialchars(strtolower($emailaddress)) ?>">
+                  value="<?= htmlspecialchars(strtolower($emailaddress)) ?>"
+                  required>
               </div>              
 
               <!-- Mobile Number -->
               <div class="sm:col-span-3">
                 <label for="af-account-mobile" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                  Mobile Number
+                  Mobile Number <span class="text-red-500">*</span>
                 </label>
               </div>
               <div class="sm:col-span-9">
                 <input id="af-account-mobile" name="mobilenumber" type="text"
                   class="py-1.5 sm:py-2 px-3 pe-11 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                   placeholder="Enter Mobile Number"
-                  value="<?= htmlspecialchars($mobilenumber) ?>">
+                  value="<?= htmlspecialchars($mobilenumber) ?>"
+                  required>
               </div>
 
 
@@ -791,7 +819,7 @@ if ($user) {
 
               <div class="sm:col-span-3">
                 <label for="af-account-placeofbirth" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                  Place of Birth
+                  Place of Birth <span class="text-red-500">*</span>
                 </label>
               </div>
               <!-- End Col -->
@@ -800,13 +828,14 @@ if ($user) {
                 <input id="af-account-placeofbirth" name="birth_place" type="text"
                   class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                   placeholder="Enter Place of Birth"
-                  value="<?= htmlspecialchars($birth_place) ?>">
+                  value="<?= htmlspecialchars($birth_place) ?>"
+                  required>
               </div>
               <!-- End Col -->
 
               <div class="sm:col-span-3">
                 <label for="af-account-permanentaddress" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                  Permanent Address
+                  Permanent Address <span class="text-red-500">*</span>
                 </label>
               </div>
               <!-- End Col -->
@@ -815,14 +844,15 @@ if ($user) {
                 <input id="af-account-permanentaddress" name="permanent_add" type="text"
                   class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                   placeholder="Enter Permanent Address"
-                  value="<?= htmlspecialchars($permanent_add) ?>">
+                  value="<?= htmlspecialchars($permanent_add) ?>"
+                  required>
               </div>
               <!-- End Col -->              
 
               <!-- Residential Address Label -->
               <div class="sm:col-span-3">
                 <label for="af-account-residentialaddress" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                  Residential Address
+                  Residential Address <span class="text-red-500">*</span>
                 </label>
               </div>
               <!-- End Col -->
@@ -834,7 +864,8 @@ if ($user) {
                   <input id="af-account-residentialaddress" name="residential_add" type="text"
                   class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs -mt-px -ms-px first:rounded-t-lg last:rounded-b-lg sm:first:rounded-s-lg sm:mt-0 sm:first:ms-0 sm:first:rounded-se-none sm:last:rounded-es-none sm:last:rounded-e-none sm:text-sm relative focus:z-10 focus:border-blue-500 disabled:opacity-50 disabled:pointer-events-none focus:ring-blue-500 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                   placeholder="Enter Residential Address"
-                  value="<?= htmlspecialchars($residential_add) ?>">
+                  value="<?= htmlspecialchars($residential_add) ?>"
+                  required>
 
                   <!-- Dropdown for Address Options -->
                   <select id="residentialAddressOption" class="py-1.5 sm:py-2 px-3 pe-9 block w-full sm:w-auto border border-l-0 border-gray-200 shadow-2xs sm:text-sm relative focus:z-10 focus:border-blue-500 disabled:opacity-50 disabled:pointer-events-none focus:ring-blue-500 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:focus:ring-neutral-600 rounded-e-lg">
@@ -877,66 +908,71 @@ if ($user) {
               <!-- GSIS No. -->
               <div class="sm:col-span-3">
                 <label for="af-account-gsis" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                  GSIS No.
+                  GSIS No. <span class="text-red-500">*</span>
                 </label>
               </div>
               <div class="sm:col-span-9">
                 <input id="af-account-gsis" name="gsis_number" type="text"
                   class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 disabled:opacity-50 disabled:pointer-events-none focus:ring-blue-500 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                   placeholder="Enter GSIS Number"
-                  value="<?= htmlspecialchars($gsis_number) ?>">
+                  value="<?= htmlspecialchars($gsis_number) ?>"
+                  required>
               </div>
 
               <!-- Pag-ibig No. -->
               <div class="sm:col-span-3">
                 <label for="af-account-pagibig" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                  Pag-ibig No.
+                  Pag-ibig No. <span class="text-red-500">*</span>
                 </label>
               </div>
               <div class="sm:col-span-9">
                 <input id="af-account-pagibig" name="pagibig_number" type="text"
                   class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 disabled:opacity-50 disabled:pointer-events-none focus:ring-blue-500 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                   placeholder="Enter Pag-ibig Number"
-                  value="<?= htmlspecialchars($pagibig_number) ?>">
+                  value="<?= htmlspecialchars($pagibig_number) ?>"
+                  required>
               </div>
 
               <!-- PhilHealth No. -->
               <div class="sm:col-span-3">
                 <label for="af-account-philhealth" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                  PhilHealth No.
+                  PhilHealth No. <span class="text-red-500">*</span>
                 </label>
               </div>
               <div class="sm:col-span-9">
                 <input id="af-account-philhealth" name="philhealth_number" type="text"
                   class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 disabled:opacity-50 disabled:pointer-events-none focus:ring-blue-500 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                   placeholder="Enter PhilHealth Number"
-                  value="<?= htmlspecialchars($philhealth_number) ?>">
+                  value="<?= htmlspecialchars($philhealth_number) ?>"
+                  required>
               </div>
 
               <!-- SSS No. -->
               <div class="sm:col-span-3">
                 <label for="af-account-sss" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                  SSS No.
+                  SSS No. <span class="text-red-500">*</span>
                 </label>
               </div>
               <div class="sm:col-span-9">
                 <input id="af-account-sss" name="sss_number" type="text"
                   class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 disabled:opacity-50 disabled:pointer-events-none focus:ring-blue-500 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                   placeholder="Enter SSS Number"
-                  value="<?= htmlspecialchars($sss_number) ?>">
+                  value="<?= htmlspecialchars($sss_number) ?>"
+                  required>
               </div>
 
               <!-- TIN No. -->
               <div class="sm:col-span-3">
                 <label for="af-account-tin" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                  TIN No.
+                  TIN No. <span class="text-red-500">*</span>
                 </label>
               </div>
               <div class="sm:col-span-9">
                 <input id="af-account-tin" name="tin" type="text"
                   class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 disabled:opacity-50 disabled:pointer-events-none focus:ring-blue-500 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                   placeholder="Enter TIN Number"
-                  value="<?= htmlspecialchars($tin) ?>">
+                  value="<?= htmlspecialchars($tin) ?>"
+                  required>
               </div>
      
               <!-- Separator Line -->
@@ -945,12 +981,13 @@ if ($user) {
               <!-- ID Type -->
               <div class="sm:col-span-3">
                 <label for="af-validid" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                  ID Type
+                  ID Type <span class="text-red-500">*</span>
                 </label>
               </div>
               <div class="sm:col-span-9">
                 <select id="af-validid" name="identification_type"
-                  class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg bg-white focus:border-blue-500 disabled:opacity-50 disabled:pointer-events-none focus:ring-blue-500 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:focus:ring-neutral-600">
+                  class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg bg-white focus:border-blue-500 disabled:opacity-50 disabled:pointer-events-none focus:ring-blue-500 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:focus:ring-neutral-600"
+                  required>
                   <option disabled <?= empty($identification_type) ? 'selected' : '' ?>>Select Valid ID</option>
                   <?php foreach ($id_type_options as $opt): ?>
                     <option <?= ($identification_type === $opt) ? 'selected' : '' ?>><?= htmlspecialchars($opt) ?></option>
@@ -961,20 +998,21 @@ if ($user) {
               <!-- ID No. -->
               <div class="sm:col-span-3">
                 <label for="af-account-idno" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                  ID No.
+                  ID No. <span class="text-red-500">*</span>
                 </label>
               </div>
               <div class="sm:col-span-9">
                 <input id="af-account-idno" name="identification_no" type="text"
                   class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg focus:border-blue-500 disabled:opacity-50 disabled:pointer-events-none focus:ring-blue-500 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                   placeholder="Enter ID Number"
-                  value="<?= htmlspecialchars($identification_no) ?>">
+                  value="<?= htmlspecialchars($identification_no) ?>"
+                  required>
               </div>
 
               <!-- Date/Place of Issuance -->
               <div class="sm:col-span-3">
                 <label for="af-account-issuance" class="inline-block text-sm text-gray-800 mt-2.5 dark:text-neutral-200">
-                  Date/Place of Issuance
+                  Date/Place of Issuance <span class="text-red-500">*</span>
                 </label>
               </div>
               <div class="sm:col-span-9">
@@ -1083,8 +1121,212 @@ if ($user) {
   <!-- Required plugins -->
   <script src="https://cdn.jsdelivr.net/npm/preline/dist/index.js"></script>
 
-  <!-- Include the JS at the end of your body -->
-  <script src="js/editprofile.js"></script>
+  <!-- Tab 1 Profile Edit JavaScript -->
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const form = document.querySelector('#edit-profile-form');
+    const editBtn = document.getElementById('edit-button');
+    const cancelBtn = document.getElementById('cancel-button');
+    const saveBtn = document.getElementById('save-button');
+    const profileUserIdInput = document.getElementById('profile_userid');
+
+    // Check if essential elements exist
+    if (!form) {
+      console.error('Form #edit-profile-form not found');
+      return;
+    }
+    if (!editBtn || !cancelBtn || !saveBtn) {
+      console.error('One or more buttons not found');
+      return;
+    }
+
+    const inputs = form.querySelectorAll('input, select, textarea');
+    console.log('Found', inputs.length, 'inputs'); // Debug log
+
+    // Store original values for cancel
+    let originalValues = {};
+
+    // Get profile_userid from various sources
+    function getProfileUserId() {
+      // First check the hidden input
+      if (profileUserIdInput && profileUserIdInput.value) {
+        return profileUserIdInput.value;
+      }
+      
+      // Then check URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlUserId = urlParams.get('userid');
+      if (urlUserId) {
+        return urlUserId;
+      }
+      
+      // Fallback to null (will use session userid on server)
+      return null;
+    }
+
+    // Helper: Disable or enable all fields
+    function setFieldsDisabled(disabled = true) {
+      inputs.forEach(input => {
+        if (input.type !== "hidden") input.disabled = disabled;
+      });
+    }
+
+    // Helper: Store current field values
+    function cacheOriginalValues() {
+      originalValues = {};
+      inputs.forEach(input => {
+        if (input.type === 'radio') {
+          originalValues[input.name] = form.querySelector(`input[name="${input.name}"]:checked`)?.value || '';
+        } else {
+          originalValues[input.name || input.id] = input.value;
+        }
+      });
+    }
+
+    // Helper: Restore cached values
+    function restoreOriginalValues() {
+      inputs.forEach(input => {
+        const key = input.name || input.id;
+        if (originalValues.hasOwnProperty(key)) {
+          if (input.type === 'radio') {
+            input.checked = (input.value === originalValues[key]);
+          } else {
+            input.value = originalValues[key];
+            // For selects, update selected option
+            if (input.tagName === 'SELECT') {
+              for (let i = 0; i < input.options.length; i++) {
+                if (input.options[i].value == originalValues[key]) {
+                  input.selectedIndex = i;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Initial state: fields disabled, buttons hidden
+    setFieldsDisabled(true);
+    saveBtn.style.display = 'none';
+
+    // Edit button: enable fields and show action buttons
+    editBtn.addEventListener('click', function () {
+      setFieldsDisabled(false);
+      cacheOriginalValues();
+      editBtn.style.display = 'none';
+      cancelBtn.style.display = '';
+      saveBtn.style.display = '';
+    });
+
+    // Cancel button: restore values, disable fields, hide action buttons
+    cancelBtn.addEventListener('click', function () {
+      restoreOriginalValues();
+      setFieldsDisabled(true);
+      cancelBtn.style.display = 'none';
+      saveBtn.style.display = 'none';
+      editBtn.style.display = '';
+    });
+
+    // Save changes: AJAX submit
+    saveBtn.addEventListener('click', function () {
+      console.log('Save button clicked'); // Debug
+      saveBtn.disabled = true;
+      cancelBtn.disabled = true;
+      
+      // Collect form data
+      const formData = {};
+      console.log('Processing', inputs.length, 'inputs'); // Debug
+      
+      inputs.forEach(input => {
+        console.log('Processing input:', input.name, input.type, input.value); // Debug
+        if (input.type === 'radio') {
+          if (input.checked) {
+            formData[input.name] = input.value;
+            console.log('Added radio:', input.name, '=', input.value); // Debug
+          }
+        } else if (input.type !== 'hidden') {
+          formData[input.name] = input.value;
+          console.log('Added field:', input.name, '=', input.value); // Debug
+      // Build main payload
+        } else if (input.type === 'hidden') {
+          // Include hidden fields like profile_userid
+          formData[input.name] = input.value;
+          console.log('Added hidden:', input.name, '=', input.value); // Debug
+        }
+      });
+
+      // Validate required fields (all fields except suffix)
+      const requiredFields = [
+        'last_name', 'first_name', 'middle_name', 'gender', 'birthdate',
+        'citizenship', 'civilstatus', 'religion', 'tribe', 'telephoneno', 
+        'mobilenumber', 'emailaddress', 'height', 'weight', 'blood_type',
+        'birth_place', 'permanent_add', 'residential_add',
+        'gsis_number', 'pagibig_number', 'philhealth_number', 'tin', 'sss_number',
+        'identification_type', 'identification_no', 'date_or_placeofissuance'
+      ];
+      
+      const missingFields = [];
+      requiredFields.forEach(field => {
+        if (!formData[field] || formData[field].trim() === '') {
+          missingFields.push(field.replace(/_/g, ' ').toUpperCase());
+        }
+      });
+      
+      if (missingFields.length > 0) {
+        alert('Please fill in all required fields: ' + missingFields.join(', '));
+        saveBtn.disabled = false;
+        cancelBtn.disabled = false;
+        return;
+      }
+
+      // Ensure profile_userid is always sent
+      const profileUserId = getProfileUserId();
+      if (profileUserId) {
+        formData['profile_userid'] = profileUserId;
+      }
+
+      console.log('Final formData:', formData); // Debug log
+
+      // Send JSON data to the .php file
+      fetch('ajax/update_profile_tab1', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+        credentials: 'same-origin'
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Response data:', data); // Debug log
+        if (data.success) {
+          setFieldsDisabled(true);
+          cancelBtn.style.display = 'none';
+          saveBtn.style.display = 'none';
+          editBtn.style.display = '';
+          alert('General information successfully saved');
+          cacheOriginalValues(); // update originals
+        } else {
+          let errorMessage = 'Update failed: ' + (data.message || data.error || 'Unknown error.');
+          if (data.debug) {
+            console.log('Debug info:', data.debug);
+            errorMessage += '\n\nDebug info: ' + JSON.stringify(data.debug, null, 2);
+          }
+          alert(errorMessage);
+        }
+      })
+      .catch(err => {
+        console.error('Error:', err);
+        alert('Update failed: ' + err.message);
+      })
+      .finally(() => {
+        saveBtn.disabled = false;
+        cancelBtn.disabled = false;
+      });
+    });
+  });
+  </script>
 
 <script>
 // Standalone vanilla JS for tab switching and lazy loading (no Preline or external JS dependencies)
@@ -1308,6 +1550,13 @@ document.addEventListener('DOMContentLoaded', function () {
         m_firstname: data.get('m_firstname'),
         m_middlename: data.get('m_middlename'),
         m_surename: data.get('m_surename'),
+        s_firstname: data.get('s_firstname'),
+        s_middlename: data.get('s_middlename'),
+        s_surname: data.get('s_surname'),
+        occupation: data.get('occupation'),               // <-- ADD THIS
+        employer_or_business: data.get('employer_or_business'), // <-- ADD THIS
+        business_add: data.get('business_add'),           // <-- ADD THIS
+        s_telno: data.get('s_telno'),                     // <-- ADD THIS
         children: children
       };
 
@@ -1344,18 +1593,130 @@ document.addEventListener('DOMContentLoaded', function () {
 
 document.addEventListener('DOMContentLoaded', function() {
   // --- Helper: HTML template for a new eligibility row ---
+  // Get RA Type options from existing page data
+  function getRATypeOptions() {
+  // Always use the global variable set by PHP
+  return Array.isArray(window.GLOBAL_RA_TYPE_OPTIONS)
+    ? window.GLOBAL_RA_TYPE_OPTIONS
+    : [];
+  }
+
   window.getEligibilityRowHtml = function() {
+    const raTypeOptions = getRATypeOptions();
+    let optionsHtml = '<option value="">Select RA Type</option>';
+    
+    raTypeOptions.forEach(option => {
+      optionsHtml += `<option value="${option}">${option}</option>`;
+    });
+    
+    // Generate unique ID for this row
+    const uniqueId = 'ra_type_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    
     return `
-    <div class="grid grid-cols-1 sm:grid-cols-6 gap-2 items-center eligibility-row">
+    <div class="eligibility-row">
       <input type="hidden" name="eligibility_id[]" value="">
-      <input type="text" name="eligibility[]" placeholder="Eligibility Type" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 disabled:opacity-50 disabled:pointer-events-none shadow-2xs sm:text-sm rounded-lg">
-      <input type="text" name="rating[]" placeholder="Rating" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 disabled:opacity-50 disabled:pointer-events-none shadow-2xs sm:text-sm rounded-lg">
-      <input type="text" name="exam_date[]" placeholder="Date of Examination" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 disabled:opacity-50 disabled:pointer-events-none shadow-2xs sm:text-sm rounded-lg">
-      <input type="text" name="exam_place[]" placeholder="Place of Examination" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 disabled:opacity-50 disabled:pointer-events-none shadow-2xs sm:text-sm rounded-lg">
-      <input type="text" name="license_no[]" placeholder="License No." class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 disabled:opacity-50 disabled:pointer-events-none shadow-2xs sm:text-sm rounded-lg">
-      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-        <input type="date" name="date_validity[]" placeholder="Date of Validity" class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 disabled:opacity-50 disabled:pointer-events-none shadow-2xs sm:text-sm rounded-lg">
-        <button type="button" class="remove-eligibility-row flex shrink-0 justify-center items-center gap-2 size-9.5 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 hover:bg-gray-100 ml-0 sm:ml-1">
+      
+      <!-- First row: 4 fields on large screens -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
+        <!-- Eligibility Type -->
+        <div class="col-span-1">
+          <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">Eligibility Type</label>
+          <input type="text" name="eligibility[]" placeholder="Eligibility Type" required
+            class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+            focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+            dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+            dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
+        </div>
+
+        <!-- Rating -->
+        <div class="col-span-1">
+          <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">Rating</label>
+          <input type="text" name="rating[]" placeholder="Rating" required
+            class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+            focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+            dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+            dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
+        </div>
+
+        <!-- Date of Examination -->
+        <div class="col-span-1">
+          <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">Date of Examination</label>
+          <input type="text" name="exam_date[]" placeholder="Date of Examination" required
+            class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+            focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+            dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+            dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
+        </div>
+
+        <!-- Place of Examination -->
+        <div class="col-span-1">
+          <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">Place of Examination</label>
+          <input type="text" name="exam_place[]" placeholder="Place of Examination" required
+            class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+            focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+            dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+            dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
+        </div>
+      </div>
+
+      <!-- Second row: 4 fields on large screens -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
+        <!-- License Number -->
+        <div class="col-span-1">
+          <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">License No.</label>
+          <input type="text" name="license_no[]" placeholder="License No." required
+            class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+            focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+            dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+            dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
+        </div>
+
+        <!-- Date of Validity -->
+        <div class="col-span-1">
+          <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">Date of Validity</label>
+          <input type="date" name="date_validity[]" placeholder="Date of Validity" required
+            class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+            focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+            dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+            dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
+        </div>
+
+        <!-- RA Status -->
+        <div class="col-span-1">
+          <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">RA Status</label>
+          <select name="ra_status[]" required
+            class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+            focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+            dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+            dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
+            <option value="">RA Status</option>
+            <option value="YES">YES</option>
+            <option value="NO">NO</option>
+          </select>
+        </div>
+
+        <!-- RA Type -->
+        <div class="col-span-1">
+          <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">RA Type</label>
+          <select name="ra_type[]" 
+            id="${uniqueId}"
+            class="ra-type-dropdown py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+            focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+            dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+            dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+            onchange="convertRATypeField(this.id, ${JSON.stringify(raTypeOptions)})" required>
+            <option value="">Select RA Type</option>
+            ${optionsHtml}
+            <option value="other">OTHERS</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Remove button - below the fields -->
+      <div class="flex justify-end mb-4">
+        <button type="button" class="remove-eligibility-row flex shrink-0 justify-center items-center gap-2 size-9.5 text-sm font-medium rounded-lg
+          border border-gray-200 bg-white text-gray-800 hover:bg-gray-100
+          focus:outline-hidden focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700">
           <svg class="shrink-0 size-3" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round">
@@ -1367,9 +1728,9 @@ document.addEventListener('DOMContentLoaded', function() {
           </svg>
         </button>
       </div>
-      <div class="sm:col-span-6 col-span-full">
-        <hr class="my-4 border-t border-gray-200">
-      </div>
+
+      <!-- Separator -->
+      <hr class="my-4 border-t border-gray-200 dark:border-neutral-700">
     </div>
     `;
   };
@@ -1378,6 +1739,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('eligibility-container');
     if (!container) return;
     container.querySelectorAll('input').forEach(input => input.disabled = !enabled);
+    container.querySelectorAll('select').forEach(select => select.disabled = !enabled);
     container.querySelectorAll('.remove-eligibility-row').forEach(btn => {
       btn.style.display = enabled ? '' : 'none';
       btn.disabled = !enabled;
@@ -1387,6 +1749,81 @@ document.addEventListener('DOMContentLoaded', function() {
       addBtn.style.display = enabled ? '' : 'none';
       addBtn.disabled = !enabled;
     }
+  }
+
+  function setupUppercaseInputHandlers() {
+    const container = document.getElementById('eligibility-container');
+    if (!container) return;
+    
+    // Add uppercase input handlers for text fields (excluding date fields and RA Type inputs)
+    container.querySelectorAll('input[type="text"]').forEach(function(input) {
+      // Skip date fields and RA Type inputs for now
+      if (input.name === 'date_validity[]' || input.name === 'exam_date[]') {
+        return;
+      }
+      
+      input.addEventListener('input', function() {
+        const cursorPosition = this.selectionStart;
+        const originalLength = this.value.length;
+        this.value = this.value.toUpperCase();
+        
+        // Restore cursor position after uppercase conversion
+        const newLength = this.value.length;
+        const newCursorPosition = cursorPosition + (newLength - originalLength);
+        this.setSelectionRange(newCursorPosition, newCursorPosition);
+      });
+    });
+    
+    // Add uppercase input handlers for RA Type input fields
+    container.querySelectorAll('.ra-type-input').forEach(function(input) {
+      input.addEventListener('input', function() {
+        const cursorPosition = this.selectionStart;
+        const originalLength = this.value.length;
+        this.value = this.value.toUpperCase();
+        
+        // Restore cursor position after uppercase conversion
+        const newLength = this.value.length;
+        const newCursorPosition = cursorPosition + (newLength - originalLength);
+        this.setSelectionRange(newCursorPosition, newCursorPosition);
+      });
+    });
+  }
+
+  function setupUppercaseInputHandlersForRow(row) {
+    if (!row) return;
+    
+    // Add uppercase input handlers for text fields in this row (excluding date fields)
+    row.querySelectorAll('input[type="text"]').forEach(function(input) {
+      // Skip date fields
+      if (input.name === 'date_validity[]' || input.name === 'exam_date[]') {
+        return;
+      }
+      
+      input.addEventListener('input', function() {
+        const cursorPosition = this.selectionStart;
+        const originalLength = this.value.length;
+        this.value = this.value.toUpperCase();
+        
+        // Restore cursor position after uppercase conversion
+        const newLength = this.value.length;
+        const newCursorPosition = cursorPosition + (newLength - originalLength);
+        this.setSelectionRange(newCursorPosition, newCursorPosition);
+      });
+    });
+    
+    // Add uppercase input handlers for RA Type input fields in this row
+    row.querySelectorAll('.ra-type-input').forEach(function(input) {
+      input.addEventListener('input', function() {
+        const cursorPosition = this.selectionStart;
+        const originalLength = this.value.length;
+        this.value = this.value.toUpperCase();
+        
+        // Restore cursor position after uppercase conversion
+        const newLength = this.value.length;
+        const newCursorPosition = cursorPosition + (newLength - originalLength);
+        this.setSelectionRange(newCursorPosition, newCursorPosition);
+      });
+    });
   }
 
   function switchEligibilityViewMode() {
@@ -1401,6 +1838,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function switchEligibilityEditMode() {
     setEligibilityFieldsEnabled(true);
+    
+    // Set up event handlers for existing RA Type dropdowns
+    document.querySelectorAll('.ra-type-dropdown').forEach(function(dropdown) {
+      if (dropdown.onchange) {
+        // Event handler is already set up via PHP
+        return;
+      }
+      
+      // Set up the onchange handler for dropdowns that don't have it
+      dropdown.onchange = function() {
+        // Get the RA type options from the existing dropdowns
+        const raTypeOptions = getRATypeOptions();
+        convertRATypeField(dropdown.id, raTypeOptions);
+      };
+    });
+    
+    // Add uppercase input handlers for text fields
+    setupUppercaseInputHandlers();
+    
     const editBtn = document.getElementById('edit-eligibility-button');
     if (editBtn) editBtn.style.display = 'none';
     const cancelBtn = document.getElementById('cancel-eligibility-btn');
@@ -1416,6 +1872,10 @@ document.addEventListener('DOMContentLoaded', function() {
       var container = document.getElementById('eligibility-container');
       if (container) {
         container.insertAdjacentHTML('beforeend', getEligibilityRowHtml());
+        
+        // Set up uppercase input handlers for the newly added row
+        const newRow = container.lastElementChild;
+        setupUppercaseInputHandlersForRow(newRow);
       }
       e.preventDefault();
       return;
@@ -1458,14 +1918,27 @@ document.addEventListener('DOMContentLoaded', function() {
       const rows = document.querySelectorAll('.eligibility-row');
       const eligibilityData = [];
       rows.forEach(row => {
+        // Handle RA Type field (can be select or input)
+        let raTypeValue = '';
+        const raTypeSelect = row.querySelector('select[name="ra_type[]"]');
+        const raTypeInput = row.querySelector('input[name="ra_type[]"]');
+        
+        if (raTypeSelect && raTypeSelect.style.display !== 'none') {
+          raTypeValue = raTypeSelect.value || '';
+        } else if (raTypeInput && raTypeInput.style.display !== 'none') {
+          raTypeValue = raTypeInput.value || '';
+        }
+        
         eligibilityData.push({
           id: row.querySelector('input[name="eligibility_id[]"]')?.value || '',
-          eligibility_type: row.querySelector('input[name="eligibility[]"]')?.value || '',
-          rating: row.querySelector('input[name="rating[]"]')?.value || '',
+          eligibility_type: (row.querySelector('input[name="eligibility[]"]')?.value || '').toUpperCase(),
+          rating: (row.querySelector('input[name="rating[]"]')?.value || '').toUpperCase(),
           date_exam: row.querySelector('input[name="exam_date[]"]')?.value || '',
-          place_exam: row.querySelector('input[name="exam_place[]"]')?.value || '',
-          license_no: row.querySelector('input[name="license_no[]"]')?.value || '',
-          date_validity: row.querySelector('input[name="date_validity[]"]')?.value || ''
+          place_exam: (row.querySelector('input[name="exam_place[]"]')?.value || '').toUpperCase(),
+          license_no: (row.querySelector('input[name="license_no[]"]')?.value || '').toUpperCase(),
+          date_validity: row.querySelector('input[name="date_validity[]"]')?.value || '',
+          ra_status: (row.querySelector('select[name="ra_status[]"]')?.value || '').toUpperCase(),
+          ra_type: raTypeValue.toUpperCase()
         });
       });
 
@@ -3216,6 +3689,7 @@ document.addEventListener('DOMContentLoaded', function () {
       });
       const profile_userid = document.getElementById('profile_userid')?.value || '';
       setEducFieldsEnabled(false);
+      
       fetch('/pulse/ajax/update_profile_tab12', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -3232,11 +3706,15 @@ document.addEventListener('DOMContentLoaded', function () {
         })
       })
       .then(async res => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
         let responseText = await res.text();
         let json;
         try {
           json = JSON.parse(responseText);
         } catch (e) {
+          console.error('Invalid JSON response:', responseText);
           alert('Server returned invalid JSON:\n\n' + responseText);
           setEducFieldsEnabled(true);
           return;
@@ -3250,6 +3728,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       })
       .catch(err => {
+        console.error('AJAX/network error:', err);
         alert('AJAX/network error:\n\n' + err);
         setEducFieldsEnabled(true);
       });
@@ -3259,6 +3738,87 @@ document.addEventListener('DOMContentLoaded', function () {
 
   switchEducViewMode();
 });
+</script>
+
+<script>
+// ---- RA Type Field Conversion Functions ----
+function convertRATypeField(fieldId, raTypeOptions) {
+  var dropdown = document.getElementById(fieldId);
+  
+  if (dropdown && dropdown.value === "other") {
+    var inputField = document.createElement("input");
+    inputField.type = "text";
+    inputField.id = fieldId;
+    inputField.name = "ra_type[]";
+    inputField.placeholder = "Enter RA Type";
+    inputField.className = dropdown.className.replace('ra-type-dropdown', 'ra-type-input');
+    inputField.required = true;
+    
+    // Preserve the disabled state
+    inputField.disabled = dropdown.disabled;
+    
+    dropdown.parentNode.replaceChild(inputField, dropdown);
+    
+    // Add uppercase input handler
+    inputField.addEventListener('input', function() {
+      const cursorPosition = this.selectionStart;
+      const originalLength = this.value.length;
+      this.value = this.value.toUpperCase();
+      
+      // Restore cursor position after uppercase conversion
+      const newLength = this.value.length;
+      const newCursorPosition = cursorPosition + (newLength - originalLength);
+      this.setSelectionRange(newCursorPosition, newCursorPosition);
+    });
+    
+    // Automatically focus on the newly created input field if not disabled
+    if (!inputField.disabled) {
+      inputField.focus();
+    }
+    
+    // Add an event listener to revert back if no value is entered
+    inputField.addEventListener("blur", function () {
+      if (!inputField.value.trim()) {
+        revertRATypeToDropdown(inputField, fieldId, raTypeOptions);
+      }
+    });
+  }
+}
+
+function revertRATypeToDropdown(inputField, fieldId, raTypeOptions) {
+  var dropdown = document.createElement("select");
+  dropdown.id = fieldId;
+  dropdown.name = "ra_type[]";
+  dropdown.className = inputField.className.replace('ra-type-input', 'ra-type-dropdown');
+  dropdown.required = true;
+  
+  // Preserve the disabled state
+  dropdown.disabled = inputField.disabled;
+  
+  dropdown.onchange = function () { convertRATypeField(fieldId, raTypeOptions); };
+  
+  // Add placeholder option
+  var optionPlaceholder = document.createElement("option");
+  optionPlaceholder.textContent = "Select RA Type";
+  optionPlaceholder.value = "";
+  dropdown.appendChild(optionPlaceholder);
+  
+  // Add existing options
+  raTypeOptions.forEach(function(val) {
+    var option = document.createElement("option");
+    option.textContent = val;
+    option.value = val;
+    dropdown.appendChild(option);
+  });
+  
+  // Add OTHERS option
+  var optionOther = document.createElement("option");
+  optionOther.textContent = "OTHERS";
+  optionOther.value = "other";
+  dropdown.appendChild(optionOther);
+  
+  inputField.parentNode.replaceChild(dropdown, inputField);
+}
 </script>
 
   </body>

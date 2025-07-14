@@ -1,6 +1,156 @@
 <?php
 require_once('init.php');
 
+// Handle profile image upload
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'upload_profile_image') {
+    // Check if user is logged in
+    if (!isset($_SESSION['userid'])) {
+        http_response_code(401);
+        echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
+        exit;
+    }
+
+    // Get the target user ID (either from session or URL parameter)
+    $target_userid = $_SESSION['userid']; // Default to current user
+    
+    // Check if userid is provided via GET or POST
+    if (isset($_GET['userid']) && is_numeric($_GET['userid'])) {
+        $target_userid = intval($_GET['userid']);
+    } elseif (isset($_POST['userid']) && is_numeric($_POST['userid'])) {
+        $target_userid = intval($_POST['userid']);
+    }
+    
+    $current_userid = $_SESSION['userid'];
+    $user_category = isset($_SESSION['category']) ? $_SESSION['category'] : '';
+
+    // Access control - same logic as in profile.php
+    $access_granted = ($target_userid === $current_userid);
+
+    if (!$access_granted) {
+        // Only allow ADMINISTRATOR level users with HR or SUPERADMIN category
+        if (isset($_SESSION['level']) && $_SESSION['level'] === 'ADMINISTRATOR' 
+            && in_array($user_category, ['HR', 'SUPERADMIN'])) {
+            $access_granted = true;
+        }
+    }
+
+    if (!$access_granted) {
+        http_response_code(403);
+        echo json_encode(['status' => 'error', 'message' => 'Access denied']);
+        exit;
+    }
+
+    // Check if file was uploaded
+    if (!isset($_FILES['profile_image']) || $_FILES['profile_image']['error'] !== UPLOAD_ERR_OK) {
+        echo json_encode(['status' => 'error', 'message' => 'No file uploaded or upload error']);
+        exit;
+    }
+
+    $file = $_FILES['profile_image'];
+
+    // Validate file size (max 2MB for security)
+    $max_file_size = 2 * 1024 * 1024; // 2MB in bytes
+    if ($file['size'] > $max_file_size) {
+        echo json_encode(['status' => 'error', 'message' => 'File size too large. Maximum size is 2MB']);
+        exit;
+    }
+
+    // Additional security: Check for minimum file size (avoid empty files)
+    if ($file['size'] < 1024) { // Minimum 1KB
+        echo json_encode(['status' => 'error', 'message' => 'File too small. Please upload a valid image']);
+        exit;
+    }
+
+    // Validate file type using multiple methods for security
+    $allowed_mime_types = ['image/jpeg', 'image/jpg'];
+    $file_mime = $file['type'];
+    
+    // Use getimagesize for additional validation
+    $file_info = getimagesize($file['tmp_name']);
+    if ($file_info === false) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid image file']);
+        exit;
+    }
+
+    // Check MIME type from both sources
+    if (!in_array($file_mime, $allowed_mime_types) || !in_array($file_info['mime'], $allowed_mime_types)) {
+        echo json_encode(['status' => 'error', 'message' => 'Only JPG/JPEG files are allowed']);
+        exit;
+    }
+
+    // Additional security: Check image dimensions (reasonable limits)
+    $max_width = 5000;
+    $max_height = 5000;
+    $min_width = 50;
+    $min_height = 50;
+    
+    if ($file_info[0] > $max_width || $file_info[1] > $max_height) {
+        echo json_encode(['status' => 'error', 'message' => 'Image dimensions too large. Maximum 5000x5000 pixels']);
+        exit;
+    }
+    
+    if ($file_info[0] < $min_width || $file_info[1] < $min_height) {
+        echo json_encode(['status' => 'error', 'message' => 'Image dimensions too small. Minimum 50x50 pixels']);
+        exit;
+    }
+
+    // Check file extension from filename
+    $file_extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    if (!in_array($file_extension, ['jpg', 'jpeg'])) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid file extension. Only .jpg and .jpeg are allowed']);
+        exit;
+    }
+
+    // Sanitize the target userid (additional check)
+    if (!is_numeric($target_userid) || $target_userid <= 0) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid user ID']);
+        exit;
+    }
+    // Create upload directory if it doesn't exist
+    $upload_dir = 'assets/prof_img/';
+    if (!is_dir($upload_dir)) {
+        if (!mkdir($upload_dir, 0755, true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Failed to create upload directory']);
+            exit;
+        }
+    }
+
+    // Additional security: Check if upload directory is writable
+    if (!is_writable($upload_dir)) {
+        echo json_encode(['status' => 'error', 'message' => 'Upload directory is not writable']);
+        exit;
+    }
+
+    // Generate filename: {userid}.jpg (sanitized)
+    $filename = intval($target_userid) . '.jpg';
+    $upload_path = $upload_dir . $filename;
+
+    // Move uploaded file with additional security checks
+    if (move_uploaded_file($file['tmp_name'], $upload_path)) {
+        // Set proper permissions (readable by web server, not executable)
+        chmod($upload_path, 0644);
+        
+        // Double-check the uploaded file is actually a JPEG after upload
+        $final_check = getimagesize($upload_path);
+        if ($final_check === false || !in_array($final_check['mime'], $allowed_mime_types)) {
+            // Remove the file if it's not valid
+            unlink($upload_path);
+            echo json_encode(['status' => 'error', 'message' => 'Uploaded file failed final validation']);
+            exit;
+        }
+        
+        echo json_encode([
+            'status' => 'success', 
+            'message' => 'Profile image updated successfully',
+            'image_path' => $upload_path
+        ]);
+        exit;
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'Failed to save file']);
+        exit;
+    }
+}
+
 // ==============================
 // ACCESS CONTROL SECTION
 // ==============================
@@ -451,9 +601,48 @@ if ($user) {
   <!-- Profile Section -->
   <div class="flex items-center justify-between gap-x-4">
     <div class="flex items-center gap-x-4">
-      <span class="inline-flex items-center justify-center w-16 h-16 font-semibold rounded-full border border-gray-200 bg-white text-gray-800 shadow-2xs dark:bg-neutral-900 dark:border-neutral-700 dark:text-white">
-        <?= $profile_initials ?>
-      </span>
+      <?php
+        // Check if profile image exists
+        $profile_image_path = "assets/prof_img/{$profile_userid}.jpg";
+        
+        // Check if user can edit profile image
+        $can_edit_image = false;
+        
+        // Allow if viewing own profile
+        if ($profile_userid === $_SESSION['userid']) {
+          $can_edit_image = true;
+        }
+        // Allow if user is ADMINISTRATOR with HR or SUPERADMIN category
+        elseif (isset($_SESSION['level'], $_SESSION['category']) 
+                && $_SESSION['level'] === 'ADMINISTRATOR' 
+                && in_array($_SESSION['category'], ['HR', 'SUPERADMIN'])) {
+          $can_edit_image = true;
+        }
+        
+        if (file_exists($profile_image_path)) {
+          // Display profile image if it exists
+          if ($can_edit_image) {
+            // Make it clickable for authorized users
+            echo '<img class="inline-block shrink-0 w-16 h-16 rounded-full border border-gray-200 shadow-2xs cursor-pointer hover:opacity-80 transition-opacity object-cover object-center" src="' . $profile_image_path . '" alt="Profile Image" aria-haspopup="dialog" aria-expanded="false" aria-controls="hs-subscription-with-image" data-hs-overlay="#hs-subscription-with-image">';
+          } else {
+            // Display image without click functionality for unauthorized users
+            echo '<img class="inline-block shrink-0 w-16 h-16 rounded-full border border-gray-200 shadow-2xs object-cover object-center" src="' . $profile_image_path . '" alt="Profile Image">';
+          }
+        } else {
+          // Display initials if no image exists
+          if ($can_edit_image) {
+            // Make it clickable for authorized users
+            echo '<span class="inline-flex items-center justify-center w-16 h-16 font-semibold rounded-full border border-gray-200 bg-white text-gray-800 shadow-2xs dark:bg-neutral-900 dark:border-neutral-700 dark:text-white cursor-pointer hover:opacity-80 transition-opacity" aria-haspopup="dialog" aria-expanded="false" aria-controls="hs-subscription-with-image" data-hs-overlay="#hs-subscription-with-image">';
+            echo $profile_initials;
+            echo '</span>';
+          } else {
+            // Display initials without click functionality for unauthorized users
+            echo '<span class="inline-flex items-center justify-center w-16 h-16 font-semibold rounded-full border border-gray-200 bg-white text-gray-800 shadow-2xs dark:bg-neutral-900 dark:border-neutral-700 dark:text-white">';
+            echo $profile_initials;
+            echo '</span>';
+          }
+        }
+      ?>
 
       <div class="flex flex-col">
         <h1 class="text-lg font-medium text-gray-800 dark:text-neutral-200">
@@ -1301,6 +1490,230 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <div id="modal-set-approvers-container"></div>
 <script src="/pulse/js/set_approvers.js"></script>
+
+<!-- Profile Image Modal -->
+<div id="hs-subscription-with-image" class="hs-overlay hs-overlay-open:opacity-100 hs-overlay-open:duration-500 hidden size-full fixed top-0 start-0 z-80 opacity-0 overflow-x-hidden transition-all overflow-y-auto pointer-events-none" role="dialog" tabindex="-1" aria-labelledby="hs-subscription-with-image-label">
+  <div class="max-w-sm w-full m-3 mx-auto">
+    <div class="flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl pointer-events-auto dark:bg-neutral-800 dark:border-neutral-700 dark:shadow-neutral-700/70">
+      <div class="flex justify-between items-center py-3 px-4 border-b border-gray-200 dark:border-neutral-700">
+        <h3 id="hs-subscription-with-image-label" class="font-bold text-gray-800 dark:text-white">
+          Profile Image
+        </h3>
+        <button type="button" class="size-8 inline-flex justify-center items-center gap-x-2 rounded-full border border-transparent bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-hidden focus:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-neutral-400 dark:focus:bg-neutral-600" aria-label="Close" data-hs-overlay="#hs-subscription-with-image">
+          <span class="sr-only">Close</span>
+          <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6 6 18"></path>
+            <path d="m6 6 12 12"></path>
+          </svg>
+        </button>
+      </div>
+      <div>
+        <div id="profile-image-display" class="w-full aspect-square relative overflow-hidden">
+          <?php
+            // Display the profile image in the modal or initials if no image exists
+            if (file_exists($profile_image_path)) {
+              echo '<img id="current-profile-image" class="w-full h-full object-cover" src="' . $profile_image_path . '" alt="Profile Image">';
+            } else {
+              // If no image, display initials in a centered container
+              echo '<div id="current-profile-initials" class="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-neutral-800">';
+              echo '<span class="text-6xl font-bold text-gray-600 dark:text-neutral-400">' . $profile_initials . '</span>';
+              echo '</div>';
+            }
+          ?>
+        </div>
+      </div>
+      <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t border-gray-200 dark:border-neutral-700">
+        <input type="file" id="profile-image-input" accept=".jpg,.jpeg" class="hidden">
+        <button type="button" id="edit-image-btn" class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-700 dark:focus:bg-neutral-700">
+          Edit
+        </button>
+        <button type="button" id="cancel-image-btn" class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 hidden" style="display: none;" data-hs-overlay="#hs-subscription-with-image">
+          Cancel
+        </button>
+        <button type="button" id="update-image-btn" class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 hidden" style="display: none;">
+          Update
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Profile image modal functionality
+document.addEventListener('DOMContentLoaded', function() {
+  const editBtn = document.getElementById('edit-image-btn');
+  const cancelBtn = document.getElementById('cancel-image-btn');
+  const updateBtn = document.getElementById('update-image-btn');
+  const fileInput = document.getElementById('profile-image-input');
+  const imageDisplay = document.getElementById('profile-image-display');
+  const modal = document.getElementById('hs-subscription-with-image');
+  
+  // Track if edit button was clicked
+  let editButtonClicked = false;
+  
+  // Function to reset modal state
+  function resetModalState() {
+    editButtonClicked = false;
+    // Show edit button, hide cancel and update buttons
+    editBtn.classList.remove('hidden');
+    editBtn.style.display = '';
+    cancelBtn.classList.add('hidden');
+    cancelBtn.style.display = 'none';
+    updateBtn.classList.add('hidden');
+    updateBtn.style.display = 'none';
+    fileInput.value = '';
+  }
+  
+  // Function to show file selected state
+  function showFileSelectedState() {
+    // Hide edit button, show cancel and update buttons
+    editBtn.classList.add('hidden');
+    editBtn.style.display = 'none';
+    cancelBtn.classList.remove('hidden');
+    cancelBtn.style.display = '';
+    updateBtn.classList.remove('hidden');
+    updateBtn.style.display = '';
+  }
+  
+  // Reset state when modal opens
+  modal?.addEventListener('show', resetModalState);
+  
+  // Listen for modal state changes (Preline framework events)
+  document.addEventListener('click', function(e) {
+    // Check if modal trigger is clicked (opening modal)
+    if (e.target.closest('[data-hs-overlay="#hs-subscription-with-image"]')) {
+      // Small delay to ensure modal is open before resetting
+      setTimeout(resetModalState, 50);
+    }
+  });
+  
+  // Edit button click - trigger file input
+  editBtn?.addEventListener('click', function() {
+    editButtonClicked = true;
+    fileInput.click();
+  });
+  
+  // Cancel button click - close modal (handled by data-hs-overlay attribute)
+  // No additional JS needed as the data-hs-overlay attribute handles the modal closing
+  
+  // File input change - preview image and show file selected state
+  fileInput?.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file && file.type.match('image/jpeg') && editButtonClicked) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        // Create preview image
+        imageDisplay.innerHTML = '<img id="preview-profile-image" class="w-full h-full object-cover" src="' + e.target.result + '" alt="Profile Image Preview">';
+        // Show file selected state (hide edit, show cancel and update)
+        showFileSelectedState();
+      };
+      reader.readAsDataURL(file);
+    } else if (file && !editButtonClicked) {
+      // Reset file input if edit wasn't clicked first
+      fileInput.value = '';
+    } else if (file) {
+      alert('Please select a valid JPG/JPEG image file.');
+      fileInput.value = '';
+    }
+  });
+  
+  // Update button click - upload the selected image
+  updateBtn?.addEventListener('click', function() {
+    const file = fileInput.files[0];
+    if (!file) {
+      alert('No file selected');
+      return;
+    }
+
+    // Validate file type
+    if (file.type !== 'image/jpeg' && file.type !== 'image/jpg') {
+      alert('Please upload a JPG/JPEG file only.');
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    const maxSize = 2 * 1024 * 1024; // 2MB
+    if (file.size > maxSize) {
+      alert('File size too large. Maximum size is 2MB.');
+      return;
+    }
+
+    // Show loading state
+    updateBtn.disabled = true;
+    updateBtn.innerHTML = 'Uploading...';
+    
+    // Create FormData for file upload
+    const formData = new FormData();
+    formData.append('action', 'upload_profile_image');
+    formData.append('profile_image', file);
+    
+    // Upload the file
+    fetch('', {  // Post to the same file (profile.php) like in leaveform.php
+      method: 'POST',
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.status === 'success') {
+        alert('Profile image updated successfully!');
+        
+        // Add timestamp to force browser to reload the image
+        const timestamp = new Date().getTime();
+        const newImagePath = data.image_path + '?t=' + timestamp;
+        
+        // Update the main profile image on the page
+        const mainProfileImg = document.querySelector('[data-hs-overlay="#hs-subscription-with-image"]');
+        if (mainProfileImg && mainProfileImg.tagName === 'IMG') {
+          mainProfileImg.src = newImagePath;
+        }
+        
+        // Update the modal image
+        const currentImg = document.getElementById('current-profile-image');
+        if (currentImg) {
+          currentImg.src = newImagePath;
+        }
+        
+        // Update any other profile images on the page
+        const allProfileImages = document.querySelectorAll('img[src*="assets/prof_img/"]');
+        allProfileImages.forEach(img => {
+          if (img.src.includes(data.image_path.replace('assets/prof_img/', ''))) {
+            img.src = newImagePath;
+          }
+        });
+        
+        // Close modal and reset state
+        const modal = document.getElementById('hs-subscription-with-image');
+        if (modal && window.HSOverlay) {
+          window.HSOverlay.close(modal);
+        }
+        resetModalState();
+        
+        // Reload page after a short delay to show the updated image everywhere
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+        
+      } else {
+        alert('Upload failed: ' + data.message);
+      }
+    })
+    .catch(error => {
+      console.error('Upload error:', error);
+      alert('Upload failed. Please try again.');
+    })
+    .finally(() => {
+      // Reset button state
+      updateBtn.disabled = false;
+      updateBtn.innerHTML = 'Update';
+    });
+  });
+  
+  // Initialize - ensure update button is hidden on page load
+  resetModalState();
+});
+</script>
+
+
 
   </body>
 </html>

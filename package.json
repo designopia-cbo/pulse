@@ -1,0 +1,20 @@
+{
+  "name": "pulse",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build-css": "tailwindcss -i src/input.css -o src/output.css",
+    "watch-css": "tailwindcss -i src/input.css -o src/output.css --watch",
+    "copy-preline-js": "copy node_modules\\preline\\preline.js src\\preline.js",
+    "build": "npm run build-css && npm run copy-preline-js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.11",
+    "preline": "^3.1.0",
+    "tailwindcss": "^4.1.11"
+  }
+}

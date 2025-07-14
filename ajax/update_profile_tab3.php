@@ -35,6 +35,9 @@ if (!is_array($eligibility)) {
     exit;
 }
 
+// --- Debug: Log the received data ---
+error_log("Received eligibility data: " . json_encode($eligibility));
+
 // --- Get updated_by as full name (UPPERCASE) ---
 $updated_by = '';
 if (isset($_SESSION['userid'])) {
@@ -71,6 +74,8 @@ try {
         $place_exam = isset($row['place_exam']) ? $row['place_exam'] : '';
         $license_no = isset($row['license_no']) && $row['license_no'] !== '' ? $row['license_no'] : null;
         $date_validity = isset($row['date_validity']) && $row['date_validity'] !== '' ? $row['date_validity'] : null;
+        $ra_status = isset($row['ra_status']) ? $row['ra_status'] : '';
+        $ra_type = isset($row['ra_type']) ? $row['ra_type'] : '';
 
         if ($id) $submittedIds[] = $id;
 
@@ -83,7 +88,9 @@ try {
                 'date_exam' => $date_exam,
                 'place_exam' => $place_exam,
                 'license_number' => $license_no,
-                'date_validity' => $date_validity
+                'date_validity' => $date_validity,
+                'ra_status' => $ra_status,
+                'ra_type' => $ra_type
             ];
             foreach ($fields as $field_name => $new_value) {
                 $old_value = $orig[$field_name] ?? '';
@@ -104,7 +111,7 @@ try {
                 }
             }
             // UPDATE
-            $update = $pdo->prepare("UPDATE eligibility SET eligibility_type=?, rating=?, date_exam=UPPER(?), place_exam=?, license_number=?, date_validity=? WHERE id=? AND userid=?");
+            $update = $pdo->prepare("UPDATE eligibility SET eligibility_type=?, rating=?, date_exam=UPPER(?), place_exam=?, license_number=?, date_validity=?, ra_status=?, ra_type=? WHERE id=? AND userid=?");
             if (!$update->execute([
                 $eligibility_type,
                 $rating,
@@ -112,6 +119,8 @@ try {
                 $place_exam,
                 $license_no,
                 $date_validity,
+                $ra_status,
+                $ra_type,
                 $id,
                 $userid
             ])) {
@@ -119,7 +128,7 @@ try {
             }
         } else {
             // --- INSERT: After insert, log all fields with old_value='' and new_value as entered ---
-            $insert = $pdo->prepare("INSERT INTO eligibility (userid, eligibility_type, rating, date_exam, place_exam, license_number, date_validity) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $insert = $pdo->prepare("INSERT INTO eligibility (userid, eligibility_type, rating, date_exam, place_exam, license_number, date_validity, ra_status, ra_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
             if (!$insert->execute([
                 $userid,
                 $eligibility_type,
@@ -127,7 +136,9 @@ try {
                 $date_exam,
                 $place_exam,
                 $license_no,
-                $date_validity
+                $date_validity,
+                $ra_status,
+                $ra_type
             ])) {
                 throw new Exception('DB insert failed: ' . print_r($insert->errorInfo(), true));
             }
@@ -139,7 +150,9 @@ try {
                 'date_exam' => $date_exam,
                 'place_exam' => $place_exam,
                 'license_number' => $license_no,
-                'date_validity' => $date_validity
+                'date_validity' => $date_validity,
+                'ra_status' => $ra_status,
+                'ra_type' => $ra_type
             ];
             foreach ($fields as $field_name => $new_value) {
                 $new_value_upper = strtoupper($new_value === null ? '' : $new_value);
@@ -170,7 +183,9 @@ try {
                 'date_exam' => $row['date_exam'],
                 'place_exam' => $row['place_exam'],
                 'license_number' => $row['license_number'],
-                'date_validity' => $row['date_validity']
+                'date_validity' => $row['date_validity'],
+                'ra_status' => $row['ra_status'],
+                'ra_type' => $row['ra_type']
             ];
             foreach ($fields as $field_name => $old_value) {
                 $old_value_upper = strtoupper($old_value === null ? '' : $old_value);

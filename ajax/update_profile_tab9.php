@@ -41,8 +41,14 @@ try {
     // Prepare new values (always uppercase, always present)
     $newValues = [];
     foreach ($fields as $f) {
-        // If not provided, use an empty string
-        $newValues[$f] = strtoupper(trim(array_key_exists($f, $data) ? $data[$f] : ''));
+        if ($f === 'r4_1') {
+            // Special handling for date field - save NULL if empty
+            $dateValue = trim(array_key_exists($f, $data) ? $data[$f] : '');
+            $newValues[$f] = ($dateValue === '' || $dateValue === null) ? null : $dateValue;
+        } else {
+            // If not provided, use an empty string
+            $newValues[$f] = strtoupper(trim(array_key_exists($f, $data) ? $data[$f] : ''));
+        }
     }
 
     // Get current disclosure row
@@ -74,17 +80,33 @@ try {
     // Now update as usual (compare new and old, update if needed)
     $changed = false;
     foreach ($fields as $f) {
-        $old = strtoupper(trim($dbDisclosure[$f] ?? ''));
-        $new = $newValues[$f];
-        if ($old !== $new) {
-            $actions[] = [
-                'field_name' => "PERSONAL DISCLOSURE $f",
-                'old_value' => $old,
-                'new_value' => $new,
-                'employee_id' => $profile_userid,
-                'updated_by' => $updated_by
-            ];
-            $changed = true;
+        if ($f === 'r4_1') {
+            // Special handling for date field
+            $old = $dbDisclosure[$f] ?? null;
+            $new = $newValues[$f];
+            if ($old !== $new) {
+                $actions[] = [
+                    'field_name' => "PERSONAL DISCLOSURE $f",
+                    'old_value' => $old ?? '',
+                    'new_value' => $new ?? '',
+                    'employee_id' => $profile_userid,
+                    'updated_by' => $updated_by
+                ];
+                $changed = true;
+            }
+        } else {
+            $old = strtoupper(trim($dbDisclosure[$f] ?? ''));
+            $new = $newValues[$f];
+            if ($old !== $new) {
+                $actions[] = [
+                    'field_name' => "PERSONAL DISCLOSURE $f",
+                    'old_value' => $old,
+                    'new_value' => $new,
+                    'employee_id' => $profile_userid,
+                    'updated_by' => $updated_by
+                ];
+                $changed = true;
+            }
         }
     }
     if ($changed) {

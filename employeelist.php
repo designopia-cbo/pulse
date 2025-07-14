@@ -412,10 +412,16 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
                     <td class="ps-6 pe-6 py-3 whitespace-nowrap align-middle">
                       <div class="flex items-center gap-x-3">
                         <span class="inline-flex items-center justify-center size-9.5 rounded-full bg-white border border-gray-300 dark:bg-neutral-800 dark:border-neutral-700">
-                          <span class="font-medium text-sm text-gray-800 dark:text-neutral-200"><?php echo htmlspecialchars($emp['initial']); ?></span>
+                          <a href="profile?userid=<?php echo urlencode($emp['userid']); ?>"
+                            class="font-medium text-sm text-gray-800 hover:text-blue-600 dark:text-neutral-200 dark:hover:text-blue-400 transition-colors duration-200">
+                            <?php echo htmlspecialchars($emp['initial']); ?>
+                          </a>
                         </span>
                         <div class="grow">
-                          <span class="block text-sm font-semibold text-gray-800 dark:text-neutral-200"><?php echo htmlspecialchars($emp['name']); ?></span>
+                          <a href="profile?userid=<?php echo urlencode($emp['userid']); ?>"
+                            class="block text-sm font-semibold text-gray-800 hover:text-blue-600 dark:text-neutral-200 dark:hover:text-blue-400 transition-colors duration-200">
+                            <?php echo htmlspecialchars($emp['name']); ?>
+                          </a>
                           <span class="text-sm text-gray-500 dark:text-neutral-500"><?php echo htmlspecialchars($emp['classification']); ?></span>
                         </div>
                       </div>
