@@ -214,7 +214,16 @@ function capitalize($text) {
 <div class="max-w-2xl mx-auto my-8 p-6 bg-white shadow-md rounded-lg dark:bg-neutral-800">
     <!-- Body -->
 
-    <?php if ($_SESSION['userid'] == $leaveDetails['userid']) : ?>
+    <?php if (
+    $_SESSION['userid'] == $leaveDetails['userid'] ||
+    (
+        $_SESSION['level'] === 'ADMINISTRATOR' &&
+        (
+            $_SESSION['category'] === 'HR' ||
+            $_SESSION['category'] === 'SUPERADMIN'
+        )
+    )
+) : ?>
     <!-- floating ui -->
     <div class="hs-dropdown relative inline-flex">
       <button id="hs-dropdown-custom-icon-trigger" type="button" class="hs-dropdown-toggle flex justify-center items-center size-9 text-sm font-semibold rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-800 dark:focus:bg-neutral-800" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
@@ -223,18 +232,31 @@ function capitalize($text) {
 
       <div class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-60 bg-white shadow-md rounded-lg mt-2 dark:bg-neutral-800 dark:border dark:border-neutral-700" role="menu" aria-orientation="vertical" aria-labelledby="hs-dropdown-custom-icon-trigger">
         <div class="p-1 space-y-0.5">
-          <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700" href="myapplications">
-            My Leaves
-          </a>
-          <a
-          href="#"
-          class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700"
-          aria-haspopup="dialog"
-          aria-expanded="false"
-          aria-controls="hs-scale-animation-modal"
-          data-hs-overlay="#hs-scale-animation-modal">
-          Cancel Leave
-        </a>     
+
+        <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700" href="myapplications">
+        My Leaves
+        </a>
+
+        <a
+        href="#"
+        class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700"
+        aria-haspopup="dialog"
+        aria-expanded="false"
+        aria-controls="hs-scale-animation-modal"
+        data-hs-overlay="#hs-scale-animation-modal">
+        Cancel Leave
+        </a>
+
+        <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700"
+        href="#"
+        aria-haspopup="dialog"
+        aria-expanded="false"
+        aria-controls="hs-basic-modal"
+        data-hs-overlay="#hs-basic-modal">
+        Change Approvers
+        </a>
+ 
+
         </div>
       </div>
     </div>
@@ -262,7 +284,7 @@ function capitalize($text) {
                 </p>
               </div>
               <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t border-gray-200 dark:border-neutral-700">
-                <button type="button" class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-700 dark:focus:bg-neutral-700" data-hs-overlay="#hs-scale-animation-modal">
+                <button type="button" id="modal-close-btn" class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-700 dark:focus:bg-neutral-700" data-hs-overlay="#hs-scale-animation-modal">
                   Close
                 </button>
                 <button 
@@ -278,7 +300,169 @@ function capitalize($text) {
           </div>
         </div>
         <!-- end modal --> 
-        <?php endif; ?>       
+
+        <!-- change approvers modal --> 
+        <div id="hs-basic-modal" class="hs-overlay hs-overlay-open:opacity-100 hs-overlay-open:duration-500 hidden size-full fixed top-0 start-0 z-80 opacity-0 overflow-x-hidden transition-all overflow-y-auto pointer-events-none" role="dialog" tabindex="-1" aria-labelledby="hs-basic-modal-label">
+        <div class="sm:max-w-2xl sm:w-full m-3 sm:mx-auto">
+            <div class="flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl pointer-events-auto dark:bg-neutral-800 dark:border-neutral-700 dark:shadow-neutral-700/70">
+            
+            <div class="flex justify-between items-center py-3 px-4 border-b border-gray-200 dark:border-neutral-700">
+            <h3 id="hs-basic-modal-label" class="font-bold text-gray-800 dark:text-white">
+            Set Approvers
+            </h3>
+            <button type="button" class="size-8 inline-flex justify-center items-center gap-x-2 rounded-full border border-transparent bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-hidden focus:bg-gray-200 dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-neutral-400 dark:focus:bg-neutral-600" aria-label="Close" data-hs-overlay="#hs-basic-modal">
+            <span class="sr-only">Close</span>
+            <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6 6 18"></path>
+            <path d="m6 6 12 12"></path>
+            </svg>
+            </button>
+            </div>
+
+            <div class="p-4 overflow-y-auto">
+            <!-- Approver 1 -->
+            <div class="py-4">
+            <label for="approver-1" class="inline-block text-sm font-normal dark:text-white mb-1">Human Resource</label>
+            <select id="approver-1"
+            class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg text-gray-400 cursor-not-allowed dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 disabled:text-gray-400 disabled:cursor-not-allowed"
+            disabled
+            >
+            <option>Select HR</option>
+            <option selected>John Doe (HR)</option>
+            <option>Jane Smith (HR)</option>
+            </select>
+            </div>
+            <!-- Approver 2 -->
+            <div class="py-4">
+            <label for="approver-2" class="inline-block text-sm font-normal dark:text-white mb-1">Immediate Supervisor</label>
+            <select id="approver-2"
+            class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg text-gray-400 cursor-not-allowed dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 disabled:text-gray-400 disabled:cursor-not-allowed"
+            disabled
+            >
+            <option>Select Supervisor</option>
+            <option selected>Michael Scott (Supervisor)</option>
+            <option>Dwight Schrute (Supervisor)</option>
+            </select>
+            </div>
+            <!-- Approver 3 -->
+            <div class="py-4">
+            <label for="approver-3" class="inline-block text-sm font-normal dark:text-white mb-1">Approving Officer</label>
+            <select id="approver-3"
+            class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg text-gray-400 cursor-not-allowed dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 disabled:text-gray-400 disabled:cursor-not-allowed"
+            disabled
+            >
+            <option>Select Manager</option>
+            <option selected>Pam Beesly (Manager)</option>
+            <option>Stanley Hudson (Manager)</option>
+            </select>
+            </div>
+            </div>
+
+            <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t border-gray-200 dark:border-neutral-700">
+            
+            <button type="button"
+            id="approver-edit-btn"
+            class="py-1.5 sm:py-2 px-3 inline-flex items-center text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 dark:bg-neutral-800 dark:border-neutral-700 dark:text-white">
+            Edit
+            </button>
+
+            <button type="button" id="approver-cancel-btn" style="display:none"
+            class="py-1.5 sm:py-2 px-3 inline-flex items-center text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 dark:bg-neutral-800 dark:border-neutral-700 dark:text-white">
+            Cancel
+            </button>
+
+            <button type="button" id="approver-save-btn" style="display:none"
+            class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-hidden focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none">
+            Save changes
+            </button>
+            </div>
+            </div>
+        </div>
+        </div>
+        <!-- end approvers modal --> 
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Modal elements
+            const editBtn = document.getElementById('approver-edit-btn');
+            const saveBtn = document.getElementById('approver-save-btn');
+            const cancelBtn = document.getElementById('approver-cancel-btn');
+            const selects = [
+            document.getElementById('approver-1'),
+            document.getElementById('approver-2'),
+            document.getElementById('approver-3')
+            ];
+
+            // When modal opens, ensure selects are disabled and save/cancel are hidden
+            function resetApproverModal() {
+            selects.forEach(sel => {
+            if (sel) {
+            sel.disabled = true;
+            sel.classList.add('text-gray-400', 'cursor-not-allowed');
+            sel.classList.remove('bg-gray-100');
+            }
+            });
+            if (saveBtn) saveBtn.style.display = 'none';
+            if (cancelBtn) cancelBtn.style.display = 'none';
+            if (editBtn) editBtn.style.display = '';
+            }
+
+            // Listen for modal open (Preline triggers 'show.hs.overlay' event)
+            const modal = document.getElementById('hs-basic-modal');
+            if (modal) {
+            modal.addEventListener('show.hs.overlay', resetApproverModal);
+            }
+
+            // Edit button click: enable selects, show save/cancel, hide edit
+            if (editBtn) {
+            editBtn.addEventListener('click', function() {
+            selects.forEach(sel => {
+            if (sel) {
+                sel.disabled = false;
+                sel.classList.remove('text-gray-400', 'cursor-not-allowed', 'bg-gray-100');
+            }
+            });
+            if (saveBtn) saveBtn.style.display = '';
+            if (cancelBtn) cancelBtn.style.display = '';
+            editBtn.style.display = 'none';
+            });
+            }
+
+            // Cancel button click: revert to initial state and close modal (same as close button)
+            if (cancelBtn) {
+            cancelBtn.addEventListener('click', function() {
+            resetApproverModal();
+            // Trigger Preline's overlay close by simulating a click on the close button
+            const closeBtn = modal.querySelector('[data-hs-overlay="#hs-basic-modal"]');
+            if (closeBtn) {
+                closeBtn.click();
+            } else if (modal) {
+                // Fallback: force hide
+                modal.classList.add('hidden');
+                modal.classList.remove('block');
+                if (typeof window.HSOverlay !== 'undefined' && window.HSOverlay.close) {
+                window.HSOverlay.close(modal);
+                }
+            }
+            });
+            }
+
+            // Cancel modal close button: close the modal
+            const modalCloseBtn = document.getElementById('modal-close-btn');
+            const cancelModal = document.getElementById('hs-scale-animation-modal');
+            if (modalCloseBtn && cancelModal) {
+            modalCloseBtn.addEventListener('click', function() {
+            // Preline uses data-hs-overlay, but for safety, also force hide
+            cancelModal.classList.add('hidden');
+            cancelModal.classList.remove('block');
+            });
+            }
+        });
+        </script>
+
+        <?php endif; ?>
+        
+        
 
     <div class="p-4 sm:p-7 overflow-y-auto">
         <div class="text-center">
