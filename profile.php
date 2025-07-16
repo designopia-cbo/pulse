@@ -483,48 +483,7 @@ if ($user) {
           </button>
 
           <!-- Dropdown -->
-          <div class="hs-dropdown [--placement:bottom-right] relative inline-flex">
-            <button id="hs-dropdown-account" type="button" class="size-9.5 inline-flex justify-center items-center gap-x-2 text-sm font-semibold rounded-full border border-transparent text-gray-800 focus:outline-hidden disabled:opacity-50 disabled:pointer-events-none dark:text-white" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
-              <span class="shrink-0 size-9.5 flex items-center justify-center rounded-full bg-gray-200 text-gray-800 dark:bg-neutral-700 dark:text-neutral-200 font-medium text-sm">
-                <?php echo htmlspecialchars($initial); ?>
-            </span>
-            </button>
-
-
-            <div class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-60 bg-white shadow-md rounded-lg mt-2 dark:bg-neutral-800 dark:border dark:border-neutral-700 dark:divide-neutral-700 after:h-4 after:absolute after:-bottom-4 after:start-0 after:w-full before:h-4 before:absolute before:-top-4 before:start-0 before:w-full" role="menu" aria-orientation="vertical" aria-labelledby="hs-dropdown-account">
-              <div class="py-3 px-5 bg-gray-100 rounded-t-lg dark:bg-neutral-700">
-                <p class="text-sm text-gray-500 dark:text-neutral-500">Signed in as</p>
-                <p class="text-sm font-medium text-gray-800 dark:text-neutral-200"><?php echo htmlspecialchars($fullName); ?></p>
-              </div>
-              <div class="p-1.5 space-y-0.5">
-                <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700 dark:focus:text-neutral-300" href="profile">
-                  <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="7" r="4" />
-                    <path d="M4 20c0-4 4-7 8-7s8 3 8 7" />
-                  </svg>
-                  My Profile
-                </a>
-                <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700 dark:focus:text-neutral-300" href="changepassword">
-                  <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" 
-                     viewBox="0 0 24 24" fill="none" stroke="currentColor" 
-                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                  <path d="M7 11V7a5 5 0 0110 0v4" />
-                </svg>
-                  Change Password
-                </a>
-                <a href="logout" class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700 dark:focus:text-neutral-300">
-                    <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M9 12H21" />
-                        <path d="M16 6l6 6-6 6" />
-                        <path d="M3 12h6" />
-                    </svg>
-                    Logout
-                </a>
-                               
-              </div>
-            </div>
-          </div>
+          <?php include __DIR__ . '/includes/header_dropdown.php'; ?>
           <!-- End Dropdown -->
         </div>
       </div>
@@ -1508,7 +1467,7 @@ document.addEventListener('DOMContentLoaded', function () {
         </button>
       </div>
       <div>
-        <div id="profile-image-display" class="w-full aspect-square relative overflow-hidden">
+        <div id="profile-image-display" class="w-full aspect-square relative overflow-hidden bg-gray-100 dark:bg-neutral-800 flex items-center justify-center" style="min-height: 256px;">
           <?php
             // Display the profile image in the modal or initials if no image exists
             if (file_exists($profile_image_path)) {
@@ -1520,6 +1479,8 @@ document.addEventListener('DOMContentLoaded', function () {
               echo '</div>';
             }
           ?>
+          <!-- Cropper Canvas (hidden by default) -->
+          <canvas id="profile-cropper-canvas" class="absolute top-0 left-0 w-full h-full hidden" style="z-index:2;"></canvas>
         </div>
       </div>
       <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t border-gray-200 dark:border-neutral-700">
@@ -1538,182 +1499,8 @@ document.addEventListener('DOMContentLoaded', function () {
   </div>
 </div>
 
-<script>
-// Profile image modal functionality
-document.addEventListener('DOMContentLoaded', function() {
-  const editBtn = document.getElementById('edit-image-btn');
-  const cancelBtn = document.getElementById('cancel-image-btn');
-  const updateBtn = document.getElementById('update-image-btn');
-  const fileInput = document.getElementById('profile-image-input');
-  const imageDisplay = document.getElementById('profile-image-display');
-  const modal = document.getElementById('hs-subscription-with-image');
-  
-  // Track if edit button was clicked
-  let editButtonClicked = false;
-  
-  // Function to reset modal state
-  function resetModalState() {
-    editButtonClicked = false;
-    // Show edit button, hide cancel and update buttons
-    editBtn.classList.remove('hidden');
-    editBtn.style.display = '';
-    cancelBtn.classList.add('hidden');
-    cancelBtn.style.display = 'none';
-    updateBtn.classList.add('hidden');
-    updateBtn.style.display = 'none';
-    fileInput.value = '';
-  }
-  
-  // Function to show file selected state
-  function showFileSelectedState() {
-    // Hide edit button, show cancel and update buttons
-    editBtn.classList.add('hidden');
-    editBtn.style.display = 'none';
-    cancelBtn.classList.remove('hidden');
-    cancelBtn.style.display = '';
-    updateBtn.classList.remove('hidden');
-    updateBtn.style.display = '';
-  }
-  
-  // Reset state when modal opens
-  modal?.addEventListener('show', resetModalState);
-  
-  // Listen for modal state changes (Preline framework events)
-  document.addEventListener('click', function(e) {
-    // Check if modal trigger is clicked (opening modal)
-    if (e.target.closest('[data-hs-overlay="#hs-subscription-with-image"]')) {
-      // Small delay to ensure modal is open before resetting
-      setTimeout(resetModalState, 50);
-    }
-  });
-  
-  // Edit button click - trigger file input
-  editBtn?.addEventListener('click', function() {
-    editButtonClicked = true;
-    fileInput.click();
-  });
-  
-  // Cancel button click - close modal (handled by data-hs-overlay attribute)
-  // No additional JS needed as the data-hs-overlay attribute handles the modal closing
-  
-  // File input change - preview image and show file selected state
-  fileInput?.addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file && file.type.match('image/jpeg') && editButtonClicked) {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        // Create preview image
-        imageDisplay.innerHTML = '<img id="preview-profile-image" class="w-full h-full object-cover" src="' + e.target.result + '" alt="Profile Image Preview">';
-        // Show file selected state (hide edit, show cancel and update)
-        showFileSelectedState();
-      };
-      reader.readAsDataURL(file);
-    } else if (file && !editButtonClicked) {
-      // Reset file input if edit wasn't clicked first
-      fileInput.value = '';
-    } else if (file) {
-      alert('Please select a valid JPG/JPEG image file.');
-      fileInput.value = '';
-    }
-  });
-  
-  // Update button click - upload the selected image
-  updateBtn?.addEventListener('click', function() {
-    const file = fileInput.files[0];
-    if (!file) {
-      alert('No file selected');
-      return;
-    }
 
-    // Validate file type
-    if (file.type !== 'image/jpeg' && file.type !== 'image/jpg') {
-      alert('Please upload a JPG/JPEG file only.');
-      return;
-    }
-
-    // Validate file size (max 2MB)
-    const maxSize = 2 * 1024 * 1024; // 2MB
-    if (file.size > maxSize) {
-      alert('File size too large. Maximum size is 2MB.');
-      return;
-    }
-
-    // Show loading state
-    updateBtn.disabled = true;
-    updateBtn.innerHTML = 'Uploading...';
-    
-    // Create FormData for file upload
-    const formData = new FormData();
-    formData.append('action', 'upload_profile_image');
-    formData.append('profile_image', file);
-    
-    // Upload the file
-    fetch('', {  // Post to the same file (profile.php) like in leaveform.php
-      method: 'POST',
-      body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.status === 'success') {
-        alert('Profile image updated successfully!');
-        
-        // Add timestamp to force browser to reload the image
-        const timestamp = new Date().getTime();
-        const newImagePath = data.image_path + '?t=' + timestamp;
-        
-        // Update the main profile image on the page
-        const mainProfileImg = document.querySelector('[data-hs-overlay="#hs-subscription-with-image"]');
-        if (mainProfileImg && mainProfileImg.tagName === 'IMG') {
-          mainProfileImg.src = newImagePath;
-        }
-        
-        // Update the modal image
-        const currentImg = document.getElementById('current-profile-image');
-        if (currentImg) {
-          currentImg.src = newImagePath;
-        }
-        
-        // Update any other profile images on the page
-        const allProfileImages = document.querySelectorAll('img[src*="assets/prof_img/"]');
-        allProfileImages.forEach(img => {
-          if (img.src.includes(data.image_path.replace('assets/prof_img/', ''))) {
-            img.src = newImagePath;
-          }
-        });
-        
-        // Close modal and reset state
-        const modal = document.getElementById('hs-subscription-with-image');
-        if (modal && window.HSOverlay) {
-          window.HSOverlay.close(modal);
-        }
-        resetModalState();
-        
-        // Reload page after a short delay to show the updated image everywhere
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
-        
-      } else {
-        alert('Upload failed: ' + data.message);
-      }
-    })
-    .catch(error => {
-      console.error('Upload error:', error);
-      alert('Upload failed. Please try again.');
-    })
-    .finally(() => {
-      // Reset button state
-      updateBtn.disabled = false;
-      updateBtn.innerHTML = 'Update';
-    });
-  });
-  
-  // Initialize - ensure update button is hidden on page load
-  resetModalState();
-});
-</script>
-
-
+<script src="/pulse/js/profile_image_upload.js"></script>
 
   </body>
 </html>
