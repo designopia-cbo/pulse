@@ -35,7 +35,6 @@ document.addEventListener('DOMContentLoaded', function () {
       .then(response => response.text())
       .then(html => {
         container.innerHTML = html;
-
         modal = document.getElementById('hs-appointments-modal');
         if (typeof window.HSOverlay !== 'undefined' && modal) {
           window.HSOverlay.autoInit();
@@ -74,6 +73,48 @@ document.addEventListener('DOMContentLoaded', function () {
         if (closeBtn) closeBtn.style.display = '';
         if (saveBtn) saveBtn.style.display = '';
         showEditableFields(modal);
+
+        // Enable badge remove logic - delete via AJAX immediately
+        modal.querySelectorAll('.badge-remove-btn').forEach(button => {
+          if (!button.dataset.bound) {
+            button.dataset.bound = 'true';
+            button.addEventListener('click', function(e) {
+              e.preventDefault();
+              const badge = this.closest('span');
+              const filename = this.getAttribute('data-file');
+              const expid = this.getAttribute('data-expid');
+              const useridInput = modal.querySelector('input[name="userid"]');
+              const useridVal = useridInput ? useridInput.value : userid;
+
+              if (confirm('Are you sure you want to remove this file?')) {
+                // AJAX call to delete file on backend
+                fetch('/pulse/profile_options/appointments', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    delete_file: true,
+                    filename: filename,
+                    expid: expid,
+                    userid: useridVal
+                  }),
+                  credentials: 'same-origin'
+                })
+                .then(response => response.json())
+                .then(result => {
+                  if (result.success) {
+                    badge.remove();
+                  } else {
+                    alert(result.message || 'Failed to delete file');
+                  }
+                })
+                .catch(error => {
+                  console.error('Delete error:', error);
+                  alert('Failed to delete file. Please try again.');
+                });
+              }
+            });
+          }
+        });
       });
     }
 
@@ -91,7 +132,7 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
-    // Save button handles file upload and deletions
+    // Save button handles file upload only (deletes are handled instantly)
     if (saveBtn && !saveBtn.dataset.bound) {
       saveBtn.dataset.bound = 'true';
       saveBtn.addEventListener('click', async function () {
@@ -133,7 +174,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function setupModalCloseHandlers(modal) {
     if (!modal) return;
-
     const closeIcons = modal.querySelectorAll('.modal-close-icon, [data-hs-overlay-close]');
     closeIcons.forEach(function (icon) {
       if (!icon.dataset.bound) {
@@ -178,36 +218,27 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function applyInitialHideFields(modal) {
-    if (!modal) return;
-
-    // Initialize dropdowns if HSDropdown is available
-    if (typeof window.HSDropdown !== 'undefined') {
-      window.HSDropdown.autoInit();
-    }
+    // Hide badges and file inputs initially
+    const badges = modal.querySelectorAll('.appointment-badges');
+    badges.forEach(badge => {
+      badge.style.display = 'none';
+    });
 
     const fileInputs = modal.querySelectorAll('input[type="file"][id^="appointment-attachments"]');
     fileInputs.forEach(input => {
       input.style.display = 'none';
     });
 
-    // Hide badges and show file counts in view mode
-    const badges = modal.querySelectorAll('.appointment-badges');
-    badges.forEach(badge => {
-      badge.style.display = 'none';
-    });
-    
+    // Show file counts
     const fileCounts = modal.querySelectorAll('.file-count-text');
     fileCounts.forEach(count => {
       count.style.display = '';
     });
 
-    // Always show download dropdowns in view mode
+    // Show download dropdowns
     const downloadDropdowns = modal.querySelectorAll('.hs-dropdown');
     downloadDropdowns.forEach(dropdown => {
       dropdown.style.display = 'inline-flex';
-      if (typeof window.HSDropdown !== 'undefined') {
-        window.HSDropdown.autoInit();
-      }
     });
 
     // Always show disabled download buttons in view mode
@@ -231,7 +262,7 @@ document.addEventListener('DOMContentLoaded', function () {
     badges.forEach(badge => {
       badge.style.display = 'flex';
     });
-    
+
     const fileCounts = modal.querySelectorAll('.file-count-text');
     fileCounts.forEach(count => {
       count.style.display = 'none';
