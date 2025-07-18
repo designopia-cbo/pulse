@@ -1,8 +1,37 @@
 <?php
 require_once(__DIR__ . '/../init.php');
 
-// Handle file upload
+// Handle file upload and instant file deletion
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    // --- Instant badge/file delete via AJAX (JSON request) ---
+    // Check for JSON body with delete_file
+    $contentType = $_SERVER["CONTENT_TYPE"] ?? '';
+    if (stripos($contentType, 'application/json') !== false) {
+        $input = json_decode(file_get_contents('php://input'), true);
+        if (!empty($input['delete_file']) && !empty($input['filename'])) {
+            $filename = $input['filename'];
+            $userid = $input['userid'] ?? '';
+            $response = ['success' => false, 'message' => ''];
+            $upload_path = __DIR__ . '/../assets/appt_img/';
+            $file_path = $upload_path . $filename;
+            if ($filename && file_exists($file_path)) {
+                if (unlink($file_path)) {
+                    $response['success'] = true;
+                    $response['message'] = 'File deleted successfully';
+                } else {
+                    $response['message'] = 'Failed to delete file';
+                }
+            } else {
+                $response['message'] = 'File not found';
+            }
+            header('Content-Type: application/json');
+            echo json_encode($response);
+            exit;
+        }
+    }
+
+    // --- File upload handler ---
     $userid = $_POST['userid'] ?? null;
     $experience_ids = $_POST['experience_ids'] ?? [];
     $response = ['success' => false, 'message' => ''];
@@ -15,6 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Initialize variables for file handling
     $upload_path = __DIR__ . '/../assets/appt_img/';
+    if (!file_exists($upload_path)) {
+        mkdir($upload_path, 0777, true);
+    }
 
     // Get position titles for each experience ID
     $position_titles = [];
@@ -25,11 +57,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($result) {
             $position_titles[$exp_id] = $result['position_title'];
         }
-    }
-
-    $upload_path = __DIR__ . '/../assets/appt_img/';
-    if (!file_exists($upload_path)) {
-        mkdir($upload_path, 0777, true);
     }
 
     $successfully_uploaded = [];
@@ -86,12 +113,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     $error_messages = $errors;
     
-    $response['success'] = !empty($successfully_uploaded);
+    $response['success'] = empty($errors);
     $response['message'] = empty($error_messages)
         ? implode(', ', $messages)
         : 'Some operations failed: ' . implode(', ', $error_messages);
     $response['uploaded'] = $successfully_uploaded;
     
+    header('Content-Type: application/json');
     echo json_encode($response);
     exit;
 }
@@ -149,7 +177,7 @@ if ($userid) {
         </button>
       </div>
       <div class="p-4 overflow-y-auto">
-        <form id="appointments-upload-form" autocomplete="off">
+        <form id="appointments-upload-form" autocomplete="off" method="POST" enctype="multipart/form-data">
           <?php if ($experiences): ?>
             <?php foreach ($experiences as $idx => $exp): ?>
               <div class="grid grid-cols-12 gap-4 items-start<?= $idx > 0 ? ' mt-4' : '' ?>">
@@ -163,7 +191,7 @@ if ($userid) {
                         <?php foreach ($position_images[$exp['id']] as $image): ?>
                           <span class="inline-flex items-center gap-x-1.5 py-1.5 ps-3 pe-2 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-800/30 dark:text-blue-500">
                             <?= basename($image) ?>
-                            <button type="button" class="shrink-0 size-4 inline-flex items-center justify-center rounded-full hover:bg-blue-200 focus:outline-hidden focus:bg-blue-200 focus:text-blue-500 dark:hover:bg-blue-900" data-file="<?= htmlspecialchars($image) ?>">
+                            <button type="button" class="shrink-0 size-4 inline-flex items-center justify-center rounded-full hover:bg-blue-200 focus:outline-hidden focus:bg-blue-200 focus:text-blue-500 dark:hover:bg-blue-900 badge-remove-btn" data-file="<?= htmlspecialchars($image) ?>" data-expid="<?= htmlspecialchars($exp['id']) ?>">
                               <span class="sr-only">Remove badge</span>
                               <svg class="shrink-0 size-3" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M18 6 6 18"></path>
@@ -205,7 +233,7 @@ if ($userid) {
                       </button>
                       <div class="hs-dropdown-menu hidden transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 min-w-60 bg-white shadow-md rounded-lg p-2 mt-2 dark:bg-neutral-900 dark:border dark:border-neutral-700 dark:divide-neutral-700 left-0 right-auto">
                         <?php foreach ($position_images[$exp['id']] as $image): ?>
-                          <a href="/pulse/assets/appt_img/<?= htmlspecialchars($image) ?>" 
+                          <a href="/pulse/assets/appt_img/<?= htmlspecialchars($image) ?>"
                              download
                              class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300">
                             <?= htmlspecialchars($image) ?>
@@ -272,4 +300,5 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-});</script>
+});
+</script>
