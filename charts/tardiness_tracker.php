@@ -24,20 +24,37 @@ $monthNames = [1=>'January',2=>'February',3=>'March',4=>'April',5=>'May',6=>'Jun
 
 <div class="mt-6">
   <div class="flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl dark:bg-neutral-900 dark:border-neutral-800 p-4 md:p-5 min-h-[100px]">
-    <div class="relative flex flex-col gap-4 md:flex-row md:items-center mb-5">
-      <div class="w-12 h-12 flex items-center justify-center rounded-lg bg-blue-600 text-white">
-        <svg class="shrink-0 size-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10" />
-          <polyline points="12 6 12 12 16 14" />
-        </svg>
+    <!-- Tardiness Tracker Header with Static Button -->
+    <div class="relative flex flex-col gap-4 md:flex-row md:items-center justify-between mb-5">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 flex items-center justify-center rounded-lg bg-blue-600 text-white">
+          <svg class="shrink-0 size-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+        </div>
+        <div>
+          <h6 class="block font-sans text-base font-semibold leading-relaxed tracking-normal text-blue-gray-900 antialiased dark:text-neutral-200">
+            Tardiness Tracker
+          </h6>
+          <p class="block font-sans text-sm font-normal leading-normal text-gray-700 antialiased dark:text-neutral-400">
+            List of employees with most tardiness for the selected month and year.
+          </p>
+        </div>
       </div>
       <div>
-        <h6 class="block font-sans text-base font-semibold leading-relaxed tracking-normal text-blue-gray-900 antialiased dark:text-neutral-200">
-          Tardiness Tracker
-        </h6>
-        <p class="block font-sans text-sm font-normal leading-normal text-gray-700 antialiased dark:text-neutral-400">
-          List of employees with most tardiness for the selected month and year.
-        </p>
+        <div class="inline-flex gap-x-2">
+          <a href="uploadtardiness.php"
+            class="hs-dropdown-toggle flex justify-center items-center size-9 text-sm font-semibold rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:opacity-50 dark:bg-neutral-900 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-800 dark:focus:bg-neutral-800"
+            aria-label="Upload Tardiness">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+              stroke-width="2" stroke="currentColor" class="size-4">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="m15 11.25-3-3m0 0-3 3m3-3v7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+          </a>
+        </div>
       </div>
     </div>
 

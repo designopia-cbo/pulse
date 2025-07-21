@@ -201,15 +201,16 @@ switch ($tab) {
                            FROM `eligibility` WHERE `userid` = ?");
     $stmt->execute([$profile_userid]);
     $eligibilityRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     // Fetch unique ra_type values for dropdown options
     $stmt_ra_types = $pdo->prepare("SELECT DISTINCT `ra_type` FROM `eligibility` WHERE `ra_type` IS NOT NULL AND `ra_type` != '' ORDER BY `ra_type`");
     $stmt_ra_types->execute();
     $ra_type_options = $stmt_ra_types->fetchAll(PDO::FETCH_COLUMN);
     ?>
     <script>
-    window.GLOBAL_RA_TYPE_OPTIONS = <?= json_encode($ra_type_options) ?>;
+      window.GLOBAL_RA_TYPE_OPTIONS = <?= json_encode($ra_type_options) ?>;
     </script>
+    
     <!-- Card -->
     <div class="bg-white rounded-xl p-4 sm:p-7 dark:bg-neutral-800">
       <div class="mb-8 flex justify-between items-center">
@@ -367,7 +368,7 @@ switch ($tab) {
                             dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
                             onchange="convertRATypeField('ra_type_<?= $row_index ?>', <?= json_encode($ra_type_options) ?>)"
                             disabled required>
-                            <option value="">Select RA Type</option>
+                            <option value="" disabled <?= empty($row['ra_type']) ? 'selected' : '' ?>>Select RA Type</option>
                             <?php foreach ($ra_type_options as $option): ?>
                               <option value="<?= htmlspecialchars($option) ?>" <?= (isset($row['ra_type']) && $row['ra_type'] === $option) ? 'selected' : '' ?>><?= htmlspecialchars($option) ?></option>
                             <?php endforeach; ?>

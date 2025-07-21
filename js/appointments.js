@@ -246,6 +246,11 @@ document.addEventListener('DOMContentLoaded', function () {
     disabledDownloadBtns.forEach(btn => {
       btn.style.display = '';
     });
+
+    // Ensure dropdown plugin is initialized
+    if (typeof window.HSDropdown !== 'undefined') {
+      window.HSDropdown.autoInit();
+    }
   }
 
   function showEditableFields(modal) {

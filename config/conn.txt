@@ -1,0 +1,34 @@
+//local
+
+<?php
+// db_connection.php
+
+$host = 'localhost';
+$dbname = 'hris';
+$username = 'root';
+$password = '';
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    die("Database connection failed: " . $e->getMessage());
+}
+
+
+//live
+
+<?php
+// db_connection.php
+
+$host = '31.97.109.235';
+$dbname = 'hris';
+$username = 'root';
+$password = 'ba9fc717057d02d2ccad19ba96087d3bf169304dcf87f9ef';
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    die("Database connection failed: " . $e->getMessage());
+}
