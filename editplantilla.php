@@ -539,7 +539,7 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
     document.getElementById('position_title').value = posTitle;
   });
 </script>
-
+<script src="/pulse/js/secure.js"></script>
 
 </body>
 </html>

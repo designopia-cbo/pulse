@@ -305,49 +305,8 @@ if (isset($_GET['download']) && $_GET['download'] == '1') {
         </button>
 
         <!-- Dropdown -->
-        <div class="hs-dropdown [--placement:bottom-right] relative inline-flex">
-          <button id="hs-dropdown-account" type="button" class="size-9.5 inline-flex justify-center items-center gap-x-2 text-sm font-semibold rounded-full border border-transparent text-gray-800 focus:outline-hidden disabled:opacity-50 disabled:pointer-events-none dark:text-white" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
-            <span class="shrink-0 size-9.5 flex items-center justify-center rounded-full bg-gray-200 text-gray-800 dark:bg-neutral-700 dark:text-neutral-200 font-medium text-sm">
-              <?php echo htmlspecialchars($initial); ?>
-            </span>
-          </button>
-
-
-          <div class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-60 bg-white shadow-md rounded-lg mt-2 dark:bg-neutral-800 dark:border dark:border-neutral-700 dark:divide-neutral-700 after:h-4 after:absolute after:-bottom-4 after:start-0 after:w-full before:h-4 before:absolute before:-top-4 before:start-0 before:w-full" role="menu" aria-orientation="vertical" aria-labelledby="hs-dropdown-account">
-            <div class="py-3 px-5 bg-gray-100 rounded-t-lg dark:bg-neutral-700">
-              <p class="text-sm text-gray-500 dark:text-neutral-500">Signed in as</p>
-              <p class="text-sm font-medium text-gray-800 dark:text-neutral-200"><?php echo htmlspecialchars($fullName); ?></p>
-            </div>
-            <div class="p-1.5 space-y-0.5">
-              <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700 dark:focus:text-neutral-300" href="profile">
-                <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="7" r="4" />
-                  <path d="M4 20c0-4 4-7 8-7s8 3 8 7" />
-                </svg>
-                My Profile
-              </a>
-              <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700 dark:focus:text-neutral-300" href="changepassword">
-                <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" 
-                viewBox="0 0 24 24" fill="none" stroke="currentColor" 
-                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                <path d="M7 11V7a5 5 0 0110 0v4" />
-              </svg>
-              Change Password
-            </a>
-            <a href="logout" class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700 dark:focus:text-neutral-300">
-              <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 12H21" />
-                <path d="M16 6l6 6-6 6" />
-                <path d="M3 12h6" />
-              </svg>
-              Logout
-            </a>
-            
-          </div>
-        </div>
-      </div>
-      <!-- End Dropdown -->
+        <?php include __DIR__ . '/includes/header_dropdown.php'; ?>
+        <!-- End Dropdown -->
     </div>
   </div>
 </nav>
@@ -570,14 +529,26 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
               </tr>
             <?php else: ?>
               <?php foreach ($employees as $emp): ?>
+                <?php
+                  $userid = $emp['userid'];
+                  $profile_img_path_fs = __DIR__ . "/assets/prof_img/" . $userid . ".jpg";
+                  $profile_img_path_web = "assets/prof_img/" . $userid . ".jpg";
+                  $has_img = file_exists($profile_img_path_fs);
+                ?>
                 <tr>
                   <td class="ps-6 pe-6 py-3 whitespace-nowrap align-middle">
                     <div class="flex items-center gap-x-3">
                       <span class="inline-flex items-center justify-center size-9.5 rounded-full bg-white border border-gray-300 dark:bg-neutral-800 dark:border-neutral-700">
-                        <span class="font-medium text-sm text-gray-800 dark:text-neutral-200"><?php echo htmlspecialchars($emp['initial']); ?></span>
+                        <?php if ($has_img): ?>
+                          <img src="<?= htmlspecialchars($profile_img_path_web) ?>" alt="Profile Image" class="size-9.5 rounded-full object-cover object-center border border-gray-200 dark:border-neutral-700" />
+                        <?php else: ?>
+                          <span class="font-medium text-sm text-gray-800 dark:text-neutral-200"><?php echo htmlspecialchars($emp['initial']); ?></span>
+                        <?php endif; ?>
                       </span>
                       <div class="grow">
-                        <span class="block text-sm font-semibold text-gray-800 dark:text-neutral-200"><?php echo htmlspecialchars($emp['name']); ?></span>
+                        <a href="profile?userid=<?php echo urlencode($emp['userid']); ?>" class="block text-sm font-semibold text-gray-800 dark:text-neutral-200 hover:text-blue-600">
+                          <?php echo htmlspecialchars($emp['name']); ?>
+                        </a>
                         <span class="text-sm text-gray-500 dark:text-neutral-500"><?php echo htmlspecialchars($emp['position_title']); ?></span>
                       </div>
                     </div>
@@ -638,7 +609,7 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
                         class="view-link w-9 h-9 py-1 px-4 inline-flex justify-center items-center gap-2 rounded-lg border border-gray-200 font-medium bg-white text-gray-700 shadow-2xs align-middle hover:bg-gray-50 focus:outline-none focus:ring-0 transition-all text-sm dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:hover:text-white dark:focus:ring-offset-gray-800<?php echo ($emp['date_of_step_increment'] !== date('Y-m-d')) ? ' opacity-50 pointer-events-none' : ''; ?>"
                         <?php if ($emp['date_of_step_increment'] !== date('Y-m-d')): ?>tabindex="-1" aria-disabled="true"<?php endif; ?>>
                         <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <path d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z"/>
                         </svg>
                       </a>                      
@@ -697,6 +668,7 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
 <!-- Required plugins -->
 <script src="https://cdn.jsdelivr.net/npm/preline/dist/index.js"></script>
 
+<script src="/pulse/js/secure.js"></script>
 
 </body>
 </html>

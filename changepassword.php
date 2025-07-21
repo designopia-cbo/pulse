@@ -356,5 +356,8 @@ Change Password
         confirmPwd.addEventListener('input', validatePassword);
     });
 </script>
+
+<script src="/pulse/js/secure.js"></script>
+
 </body>
 </html>

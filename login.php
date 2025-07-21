@@ -119,6 +119,8 @@ function togglePasswordVisibility(inputId, btn) {
     }
 }
 </script>
+
+<script src="/pulse/js/secure.js"></script>
               
 </body>
 </html>

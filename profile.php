@@ -663,6 +663,27 @@ if ($user) {
               Effective Dates
             </a>
 
+            <?php if (isset($_SESSION['level'], $_SESSION['category']) && $_SESSION['level'] === 'ADMINISTRATOR' && in_array($_SESSION['category'], ['SUPERADMIN']) ): ?>
+            <a
+              id="admin-appointments-link"
+              href="#"
+              class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700"
+              data-hs-overlay="#hs-appointments-modal">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                  width="24" height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="shrink-0 size-4">
+                <path d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+              </svg>
+              Appointments
+            </a>
+            <?php endif; ?>
+
             <a
               id="admin-promote-link"
               href="#"
@@ -724,7 +745,7 @@ if ($user) {
                   <circle cx="16" cy="12" r="1"/>
                 </svg>
               Reset Password
-            </a>
+            </a>            
 
             </div>
           </div>
@@ -1450,6 +1471,9 @@ document.addEventListener('DOMContentLoaded', function () {
 <div id="modal-set-approvers-container"></div>
 <script src="/pulse/js/set_approvers.js"></script>
 
+<div id="modal-appointments-container"></div>
+<script src="/pulse/js/appointments.js"></script>
+
 <!-- Profile Image Modal -->
 <div id="hs-subscription-with-image" class="hs-overlay hs-overlay-open:opacity-100 hs-overlay-open:duration-500 hidden size-full fixed top-0 start-0 z-80 opacity-0 overflow-x-hidden transition-all overflow-y-auto pointer-events-none" role="dialog" tabindex="-1" aria-labelledby="hs-subscription-with-image-label">
   <div class="max-w-sm w-full m-3 mx-auto">
@@ -1501,6 +1525,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 <script src="/pulse/js/profile_image_upload.js"></script>
+
+<script src="/pulse/js/secure.js"></script>
 
   </body>
 </html>

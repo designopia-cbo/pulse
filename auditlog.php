@@ -349,32 +349,32 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
             <tr>
             <th scope="col" class="px-6 py-3 text-start whitespace-nowrap">
               <span class="text-xs font-semibold uppercase">
-                <?php echo auditlog_sort_link('Employee', 'employee_name', $sort, $order, $search, $page); ?>
+          <?php echo auditlog_sort_link('Employee', 'employee_name', $sort, $order, $search, $page); ?>
               </span>
             </th>
             <th scope="col" class="px-6 py-3 text-start whitespace-nowrap">
               <span class="text-xs font-semibold uppercase">
-                <?php echo auditlog_sort_link('Field', 'field_name', $sort, $order, $search, $page); ?>
+          <?php echo auditlog_sort_link('Field', 'field_name', $sort, $order, $search, $page); ?>
               </span>
             </th>
             <th scope="col" class="px-6 py-3 text-start whitespace-nowrap">
               <span class="text-xs font-semibold uppercase">
-                <?php echo auditlog_sort_link('Old Value', 'old_value', $sort, $order, $search, $page); ?>
+          <?php echo auditlog_sort_link('Old Value', 'old_value', $sort, $order, $search, $page); ?>
               </span>
             </th>
             <th scope="col" class="px-6 py-3 text-start whitespace-nowrap">
               <span class="text-xs font-semibold uppercase">
-                <?php echo auditlog_sort_link('New Value', 'new_value', $sort, $order, $search, $page); ?>
+          <?php echo auditlog_sort_link('New Value', 'new_value', $sort, $order, $search, $page); ?>
               </span>
             </th>
             <th scope="col" class="px-6 py-3 text-start whitespace-nowrap">
               <span class="text-xs font-semibold uppercase">
-                <?php echo auditlog_sort_link('Updated By', 'updated_by', $sort, $order, $search, $page); ?>
+          <?php echo auditlog_sort_link('Updated By', 'updated_by', $sort, $order, $search, $page); ?>
               </span>
             </th>
             <th scope="col" class="px-6 py-3 text-start whitespace-nowrap">
               <span class="text-xs font-semibold uppercase">
-                <?php echo auditlog_sort_link('Updated At', 'updated_at', $sort, $order, $search, $page); ?>
+          <?php echo auditlog_sort_link('Updated At', 'updated_at', $sort, $order, $search, $page); ?>
               </span>
             </th>
           </tr>
@@ -382,32 +382,40 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
           <tbody class="divide-y divide-gray-200 dark:divide-neutral-700">
             <?php if (count($auditRows) == 0): ?>
               <tr>
-                <td colspan="6" class="ps-6 pe-6 py-3 text-center align-middle text-gray-500 dark:text-neutral-400">
-                  No audit log entries found.
-                </td>
+          <td colspan="6" class="ps-6 pe-6 py-3 text-center align-middle text-gray-500 dark:text-neutral-400">
+            No audit log entries found.
+          </td>
               </tr>
             <?php else: ?>
               <?php foreach ($auditRows as $row): ?>
-                <tr>                  
-                  <td class="font-mono text-sm text-gray-500 dark:text-blue-500 px-6 py-3 whitespace-nowrap align-middle">
-                    <?php echo htmlspecialchars($row['employee_name']); ?>
-                  </td>
-                  <td class="font-mono text-sm text-gray-500 dark:text-blue-500 px-6 py-3 whitespace-nowrap align-middle">
-                    <?php echo htmlspecialchars($row['field_name']); ?>
-                  </td>
-                  <td class="font-mono text-sm text-gray-500 dark:text-blue-500 px-6 py-3 whitespace-nowrap align-middle">
-                    <?php echo htmlspecialchars($row['old_value']); ?>
-                  </td>
-                  <td class="font-mono text-sm text-gray-500 dark:text-blue-500 px-6 py-3 whitespace-nowrap align-middle">
-                    <?php echo htmlspecialchars($row['new_value']); ?>
-                  </td>
-                  <td class="font-mono text-sm text-gray-500 dark:text-blue-500 px-6 py-3 whitespace-nowrap align-middle">
-                    <?php echo htmlspecialchars($row['updated_by']); ?>
-                  </td>
-                  <td class="font-mono text-sm text-gray-500 dark:text-blue-500 px-6 py-3 whitespace-nowrap align-middle">
-                    <?php echo htmlspecialchars($row['updated_at']); ?>
-                  </td>
-                </tr>
+          <tr>                  
+            <td class="font-mono text-sm text-gray-500 dark:text-blue-500 px-6 py-3 whitespace-nowrap align-middle">
+              <?php echo htmlspecialchars($row['employee_name']); ?>
+            </td>
+            <td class="font-mono text-sm text-gray-500 dark:text-blue-500 px-6 py-3 whitespace-nowrap align-middle">
+              <?php echo htmlspecialchars($row['field_name']); ?>
+            </td>
+            <td class="font-mono text-sm text-gray-500 dark:text-blue-500 px-6 py-3 whitespace-nowrap align-middle">
+              <?php echo htmlspecialchars($row['old_value']); ?>
+            </td>
+            <td class="font-mono text-sm text-gray-500 dark:text-blue-500 px-6 py-3 whitespace-nowrap align-middle">
+              <?php echo htmlspecialchars($row['new_value']); ?>
+            </td>
+            <td class="font-mono text-sm text-gray-500 dark:text-blue-500 px-6 py-3 whitespace-nowrap align-middle">
+              <?php echo htmlspecialchars($row['updated_by']); ?>
+            </td>
+            <td class="font-mono text-sm text-gray-500 dark:text-blue-500 px-6 py-3 whitespace-nowrap align-middle">
+              <?php
+          $dt = DateTime::createFromFormat('Y-m-d H:i:s', $row['updated_at']);
+          if ($dt) {
+            $dt->modify('+8 hours');
+            echo htmlspecialchars($dt->format('M d, Y h:i:s A'));
+          } else {
+            echo htmlspecialchars($row['updated_at']);
+          }
+              ?>
+            </td>
+          </tr>
               <?php endforeach; ?>
             <?php endif; ?>
           </tbody>
@@ -429,17 +437,17 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
           </div>
         </div>
         <!-- End Footer -->
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
-</div>
-<!-- End Card -->
+      <!-- End Card -->
 
 
 
 <!-- Required plugins -->
 <script src="https://cdn.jsdelivr.net/npm/preline/dist/index.js"></script>
-
+<script src="/pulse/js/secure.js"></script>
 
 </body>
 </html>

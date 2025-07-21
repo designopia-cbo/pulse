@@ -4,12 +4,15 @@ require_once('init.php');
 // Only ADMINISTRATOR + SUPERADMIN allowed
 if (
     !isset($_SESSION['level']) || $_SESSION['level'] !== 'ADMINISTRATOR' ||
-    !isset($_SESSION['category']) || $_SESSION['category'] !== 'SUPERADMIN'
+    !isset($_SESSION['category']) || 
+    ($_SESSION['category'] !== 'SUPERADMIN' && $_SESSION['category'] !== 'HR')
 ) {
     session_unset();
     session_destroy();
-    die("Unauthorized access.");
+    header("Location: login.php");
+    exit;
 }
+
 
 // --- Search Logic ---
 $search = isset($_GET['q']) ? trim($_GET['q']) : '';

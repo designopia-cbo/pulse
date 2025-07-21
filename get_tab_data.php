@@ -52,16 +52,20 @@ switch ($tab) {
         }
         
         // Spouse
-        $stmt = $pdo->prepare("SELECT s_surname, s_firstname, s_middlename FROM spouse_details WHERE userid = :userid LIMIT 1");
+        $stmt = $pdo->prepare("SELECT s_surname, s_firstname, s_middlename, occupation, employer_or_business, business_add, s_telno FROM spouse_details WHERE userid = :userid LIMIT 1");
         $stmt->bindParam(':userid', $profile_userid, PDO::PARAM_INT);
         $stmt->execute();
         $spouse = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $spousefirstname = $spousemiddlename = $spouselastname = "";
+        $spousefirstname = $spousemiddlename = $spouselastname = $spouseoccupation = $spouseemployer = $spousebusinessadd = $spousetelno = "";
         if ($spouse) {
-            $spousefirstname   = strtoupper($spouse['s_firstname']);
-            $spousemiddlename  = strtoupper($spouse['s_middlename']);
-            $spouselastname    = strtoupper($spouse['s_surname']);
+            $spousefirstname     = strtoupper($spouse['s_firstname']);
+            $spousemiddlename    = strtoupper($spouse['s_middlename']);
+            $spouselastname      = strtoupper($spouse['s_surname']);
+            $spouseoccupation    = strtoupper($spouse['occupation']);
+            $spouseemployer      = strtoupper($spouse['employer_or_business']);
+            $spousebusinessadd   = strtoupper($spouse['business_add']);
+            $spousetelno         = strtoupper($spouse['s_telno']);
         }
         // Children
         $stmt = $pdo->prepare("SELECT c_fullname, c_bday FROM children WHERE userid = :userid ORDER BY c_bday ASC");
@@ -173,22 +177,17 @@ switch ($tab) {
 
       </div>
       <!-- End Invoice -->
-      <div class="py-1 flex items-center text-sm text-gray-500 before:flex-1 before:border-t before:border-gray-200 before:me-6 after:flex-1 after:border-t after:border-gray-200 after:ms-6">Spouse</div>      <hr class="border-8 border-white">
+
+      <div class="py-1 flex items-center text-sm text-gray-500 before:flex-1 before:border-t before:border-gray-200 before:me-6 after:flex-1 after:border-t after:border-gray-200 after:ms-6">Spouse Information</div>      <hr class="border-8 border-white">
 
       <!-- Invoice -->
-      <div class="max-w-[85rem] px-4 sm:px-6 lg:px-8 mx-auto my-4 sm:my-10">
-        <!-- Grid -->
-        <div class="grid md:grid-cols-1 gap-3">
-          <div>
-            <div class="grid space-y-3">
-              <dl class="flex flex-col sm:flex-row gap-x-3 text-sm">
-                <dt class="min-w-36 max-w-50 text-gray-500 dark:text-neutral-500 font-semibold">
-                  Spouse's Name
-                </dt>
-                <dd class="font-normal text-gray-700 dark:text-neutral-200">
+      <div class="max-w-[85rem] px-4 sm:px-6 lg:px-8 mx-auto my-4 sm:my-10"> 
 
-                </dd>
-              </dl>
+        <!-- Grid -->
+        <div class="grid md:grid-cols-2 gap-3">
+          <!-- Left: Spouse Name -->
+          <div>
+            <div class="grid space-y-3">              
 
               <dl class="flex flex-col sm:flex-row gap-x-3 text-sm">
                 <dt class="min-w-36 max-w-50 text-gray-500 dark:text-neutral-500">
@@ -216,15 +215,58 @@ switch ($tab) {
                   <?= htmlspecialchars($spouselastname) ?>
                 </dd>
               </dl>
-
             </div>
           </div>
-          <!-- Col -->
+          <!-- Col (left) -->
+
+          <!-- Right: Other Spouse Info -->
+          <div>
+            <div class="grid space-y-3">
+              
+
+              <dl class="flex flex-col sm:flex-row gap-x-3 text-sm">
+                <dt class="min-w-36 max-w-50 text-gray-500 dark:text-neutral-500">
+                  Occupation:
+                </dt>
+                <dd class="font-normal text-gray-700 dark:text-neutral-200">
+                  <?= htmlspecialchars($spouseoccupation) ?>
+                </dd>
+              </dl>
+
+              <dl class="flex flex-col sm:flex-row gap-x-3 text-sm">
+                <dt class="min-w-36 max-w-50 text-gray-500 dark:text-neutral-500">
+                  Employer/Bussiness:
+                </dt>
+                <dd class="font-normal text-gray-700 dark:text-neutral-200">
+                  <?= htmlspecialchars($spouseemployer) ?>
+                </dd>
+              </dl>
+
+              <dl class="flex flex-col sm:flex-row gap-x-3 text-sm">
+                <dt class="min-w-36 max-w-50 text-gray-500 dark:text-neutral-500">
+                  Business Address:
+                </dt>
+                <dd class="font-normal text-gray-700 dark:text-neutral-200">
+                  <?= htmlspecialchars($spousebusinessadd) ?>
+                </dd>
+              </dl>
+
+              <dl class="flex flex-col sm:flex-row gap-x-3 text-sm">
+                <dt class="min-w-36 max-w-50 text-gray-500 dark:text-neutral-500">
+                  Tel Number:
+                </dt>
+                <dd class="font-normal text-gray-700 dark:text-neutral-200">
+                  <?= htmlspecialchars($spousetelno) ?>
+                </dd>
+              </dl>
+            </div>
+          </div>
+          <!-- Col (right) -->
         </div>
         <!-- End Grid -->
-
       </div>
       <!-- End Invoice -->
+
       <div class="py-1 flex items-center text-sm text-gray-500 before:flex-1 before:border-t before:border-gray-200 before:me-6 after:flex-1 after:border-t after:border-gray-200 after:ms-6">Children</div>
 
       <hr class="border-8 border-white">

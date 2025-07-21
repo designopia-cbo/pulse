@@ -324,48 +324,7 @@ if ($user) {
           </button>
 
           <!-- Dropdown -->
-          <div class="hs-dropdown [--placement:bottom-right] relative inline-flex">
-            <button id="hs-dropdown-account" type="button" class="size-9.5 inline-flex justify-center items-center gap-x-2 text-sm font-semibold rounded-full border border-transparent text-gray-800 focus:outline-hidden disabled:opacity-50 disabled:pointer-events-none dark:text-white" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
-              <span class="shrink-0 size-9.5 flex items-center justify-center rounded-full bg-gray-200 text-gray-800 dark:bg-neutral-700 dark:text-neutral-200 font-medium text-sm">
-                <?php echo htmlspecialchars($initial); ?>
-            </span>
-            </button>
-
-
-            <div class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-60 bg-white shadow-md rounded-lg mt-2 dark:bg-neutral-800 dark:border dark:border-neutral-700 dark:divide-neutral-700 after:h-4 after:absolute after:-bottom-4 after:start-0 after:w-full before:h-4 before:absolute before:-top-4 before:start-0 before:w-full" role="menu" aria-orientation="vertical" aria-labelledby="hs-dropdown-account">
-              <div class="py-3 px-5 bg-gray-100 rounded-t-lg dark:bg-neutral-700">
-                <p class="text-sm text-gray-500 dark:text-neutral-500">Signed in as</p>
-                <p class="text-sm font-medium text-gray-800 dark:text-neutral-200"><?php echo htmlspecialchars($fullName); ?></p>
-              </div>
-              <div class="p-1.5 space-y-0.5">
-                <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700 dark:focus:text-neutral-300" href="profile">
-                  <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="7" r="4" />
-                    <path d="M4 20c0-4 4-7 8-7s8 3 8 7" />
-                  </svg>
-                  My Profile
-                </a>
-                <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700 dark:focus:text-neutral-300" href="changepassword">
-                  <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" 
-                     viewBox="0 0 24 24" fill="none" stroke="currentColor" 
-                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                  <path d="M7 11V7a5 5 0 0110 0v4" />
-                </svg>
-                  Change Password
-                </a>
-                <a href="logout" class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700 dark:focus:text-neutral-300">
-                    <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M9 12H21" />
-                        <path d="M16 6l6 6-6 6" />
-                        <path d="M3 12h6" />
-                    </svg>
-                    Logout
-                </a>
-                               
-              </div>
-            </div>
-          </div>
+          <?php include __DIR__ . '/includes/header_dropdown.php'; ?>
           <!-- End Dropdown -->
         </div>
       </div>
@@ -1591,142 +1550,152 @@ document.addEventListener('DOMContentLoaded', function () {
 <script>
 // ---- Eligibility Tab Edit Mode, Add/Remove, and Button Events ----
 
+// --- BEGIN: Inject PHP array of unique RA Type options ---
+<?php
+// Fetch unique RA Type values from the eligibility table
+$raTypeOptions = [];
+try {
+  $stmt = $pdo->query("SELECT DISTINCT ra_type FROM eligibility WHERE ra_type IS NOT NULL AND TRIM(ra_type) != '' ORDER BY ra_type ASC");
+  $raTypeOptions = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+} catch (Exception $e) {
+  $raTypeOptions = [];
+}
+?>
+window.GLOBAL_RA_TYPE_OPTIONS = <?= json_encode($raTypeOptions, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+// --- END: Inject PHP array ---
+
 document.addEventListener('DOMContentLoaded', function() {
-  // --- Helper: HTML template for a new eligibility row ---
-  // Get RA Type options from existing page data
+  
   function getRATypeOptions() {
-  // Always use the global variable set by PHP
-  return Array.isArray(window.GLOBAL_RA_TYPE_OPTIONS)
-    ? window.GLOBAL_RA_TYPE_OPTIONS
-    : [];
+    return Array.isArray(window.GLOBAL_RA_TYPE_OPTIONS)
+      ? window.GLOBAL_RA_TYPE_OPTIONS
+      : [];
   }
 
   window.getEligibilityRowHtml = function() {
     const raTypeOptions = getRATypeOptions();
-    let optionsHtml = '<option value="">Select RA Type</option>';
-    
+    let optionsHtml = '';
     raTypeOptions.forEach(option => {
       optionsHtml += `<option value="${option}">${option}</option>`;
     });
-    
     // Generate unique ID for this row
     const uniqueId = 'ra_type_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    
     return `
     <div class="eligibility-row">
       <input type="hidden" name="eligibility_id[]" value="">
       
       <!-- First row: 4 fields on large screens -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
-        <!-- Eligibility Type -->
-        <div class="col-span-1">
-          <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">Eligibility Type</label>
-          <input type="text" name="eligibility[]" placeholder="Eligibility Type" required
-            class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
-            focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
-            dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
-            dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
-        </div>
+      <!-- Eligibility Type -->
+      <div class="col-span-1">
+        <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">Eligibility Type</label>
+        <input type="text" name="eligibility[]" placeholder="Eligibility Type" required
+        class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+        focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+        dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+        dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
+      </div>
 
-        <!-- Rating -->
-        <div class="col-span-1">
-          <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">Rating</label>
-          <input type="text" name="rating[]" placeholder="Rating" required
-            class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
-            focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
-            dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
-            dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
-        </div>
+      <!-- Rating -->
+      <div class="col-span-1">
+        <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">Rating</label>
+        <input type="text" name="rating[]" placeholder="Rating" required
+        class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+        focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+        dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+        dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
+      </div>
 
-        <!-- Date of Examination -->
-        <div class="col-span-1">
-          <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">Date of Examination</label>
-          <input type="text" name="exam_date[]" placeholder="Date of Examination" required
-            class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
-            focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
-            dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
-            dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
-        </div>
+      <!-- Date of Examination -->
+      <div class="col-span-1">
+        <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">Date of Examination</label>
+        <input type="text" name="exam_date[]" placeholder="Date of Examination" required
+        class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+        focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+        dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+        dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
+      </div>
 
-        <!-- Place of Examination -->
-        <div class="col-span-1">
-          <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">Place of Examination</label>
-          <input type="text" name="exam_place[]" placeholder="Place of Examination" required
-            class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
-            focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
-            dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
-            dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
-        </div>
+      <!-- Place of Examination -->
+      <div class="col-span-1">
+        <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">Place of Examination</label>
+        <input type="text" name="exam_place[]" placeholder="Place of Examination" required
+        class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+        focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+        dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+        dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
+      </div>
       </div>
 
       <!-- Second row: 4 fields on large screens -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
-        <!-- License Number -->
-        <div class="col-span-1">
-          <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">License No.</label>
-          <input type="text" name="license_no[]" placeholder="License No." required
-            class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
-            focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
-            dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
-            dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
-        </div>
+      <!-- License Number -->
+      <div class="col-span-1">
+        <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">License No.</label>
+        <input type="text" name="license_no[]" placeholder="License No." required
+        class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+        focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+        dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+        dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
+      </div>
 
-        <!-- Date of Validity -->
-        <div class="col-span-1">
-          <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">Date of Validity</label>
-          <input type="date" name="date_validity[]" placeholder="Date of Validity" required
-            class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
-            focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
-            dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
-            dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
-        </div>
+      <!-- Date of Validity -->
+      <div class="col-span-1">
+        <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">Date of Validity</label>
+        <input type="date" name="date_validity[]" placeholder="Date of Validity" required
+        class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+        focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+        dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+        dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
+      </div>
 
-        <!-- RA Status -->
-        <div class="col-span-1">
-          <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">RA Status</label>
-          <select name="ra_status[]" required
-            class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
-            focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
-            dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
-            dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
-            <option value="">RA Status</option>
-            <option value="YES">YES</option>
-            <option value="NO">NO</option>
-          </select>
-        </div>
+      <!-- RA Status -->
+      <div class="col-span-1">
+        <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">RA Status</label>
+        <select name="ra_status[]" required
+        class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+        focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+        dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+        dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
+        <option value="">RA Status</option>
+        <option value="YES">YES</option>
+        <option value="NO">NO</option>
+        </select>
+      </div>
+      
 
-        <!-- RA Type -->
-        <div class="col-span-1">
-          <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">RA Type</label>
-          <select name="ra_type[]" 
-            id="${uniqueId}"
-            class="ra-type-dropdown py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
-            focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
-            dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
-            dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-            onchange="convertRATypeField(this.id, ${JSON.stringify(raTypeOptions)})" required>
-            <option value="">Select RA Type</option>
-            ${optionsHtml}
-            <option value="other">OTHERS</option>
-          </select>
-        </div>
+      <!-- RA Type -->
+      <div class="col-span-1">
+        <label class="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1 sm:hidden">RA Type</label>
+        <select name="ra_type[]" 
+        id="${uniqueId}"
+        class="ra-type-dropdown py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs text-sm rounded-lg
+        focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none
+        dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400
+        dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+        onchange="convertRATypeField(this.id, ${JSON.stringify(raTypeOptions)})" required>
+        <option value="" disabled selected hidden>Select RA Type</option>
+        ${optionsHtml}
+        <option value="other">OTHERS</option>
+        </select>
+      </div>
       </div>
 
       <!-- Remove button - below the fields -->
       <div class="flex justify-end mb-4">
-        <button type="button" class="remove-eligibility-row flex shrink-0 justify-center items-center gap-2 size-9.5 text-sm font-medium rounded-lg
-          border border-gray-200 bg-white text-gray-800 hover:bg-gray-100
-          focus:outline-hidden focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700">
-          <svg class="shrink-0 size-3" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="3 6 5 6 21 6"></polyline>
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
-            <path d="M10 11v6"></path>
-            <path d="M14 11v6"></path>
-            <path d="M17 6V4a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v2"></path>
-          </svg>
-        </button>
+      <button type="button" class="remove-eligibility-row flex shrink-0 justify-center items-center gap-2 size-9.5 text-sm font-medium rounded-lg
+        border border-gray-200 bg-white text-gray-800 hover:bg-gray-100
+        focus:outline-hidden focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700">
+        <svg class="shrink-0 size-3" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+        <path d="M10 11v6"></path>
+        <path d="M14 11v6"></path>
+        <path d="M17 6V4a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v2"></path>
+        </svg>
+      </button>
       </div>
 
       <!-- Separator -->
@@ -3820,6 +3789,8 @@ function revertRATypeToDropdown(inputField, fieldId, raTypeOptions) {
   inputField.parentNode.replaceChild(dropdown, inputField);
 }
 </script>
+
+<script src="/pulse/js/secure.js"></script>
 
   </body>
 </html>

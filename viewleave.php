@@ -1,7 +1,14 @@
 <?php
 require_once('init.php');
 
-// Handle AJAX leave cancellation (POST)
+// --- Helper for display name ---
+function getEmployeeDisplayName($row) {
+    $middle_initial = $row['middle_name'] ? strtoupper(substr($row['middle_name'], 0, 1)) . '. ' : '';
+    $suffix = $row['suffix'] ? ' ' . $row['suffix'] : '';
+    return $row['first_name'] . ' ' . $middle_initial . $row['last_name'] . $suffix;
+}
+
+// --- Handle AJAX leave cancellation (POST) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_leave']) && isset($_POST['leave_id'])) {
     $leave_id = (int) $_POST['leave_id'];
     $userId = $_SESSION['userid'];
@@ -78,7 +85,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_leave']) && is
     }
 }
 
-// Validate, fetch leave details, and check access
+// --- Handle AJAX Approver Update (POST) ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_approvers'], $_POST['leave_id'])) {
+    $leaveId = (int) $_POST['leave_id'];
+    $hr = (int) $_POST['hr'];
+    $supervisor = (int) $_POST['supervisor'];
+    $manager = (int) $_POST['manager'];
+    // TODO: permission check here if needed
+    $stmt = $pdo->prepare("UPDATE emp_leave SET hr = ?, supervisor = ?, manager = ? WHERE id = ?");
+    $success = $stmt->execute([$hr, $supervisor, $manager, $leaveId]);
+    if ($success) {
+        echo json_encode(['success' => true]);
+    } else {
+        echo json_encode(['success' => false, 'error' => 'Database update failed.']);
+    }
+    exit;
+}
+
+// --- Validate, fetch leave details, and check access ---
 if (isset($_GET['id'])) {
     $requestid = (int) $_GET['id']; // Convert to integer for validation
     $userId = $_SESSION['userid'];
@@ -92,15 +116,19 @@ if (isset($_GET['id'])) {
             employee.first_name AS emp_first_name, 
             employee.middle_name AS emp_middle_name, 
             employee.last_name AS emp_last_name,
+            employee.suffix AS emp_suffix,
             hr_employee.first_name AS hr_first_name,
             hr_employee.middle_name AS hr_middle_name,
             hr_employee.last_name AS hr_last_name,
+            hr_employee.suffix AS hr_suffix,
             supervisor_employee.first_name AS supervisor_first_name,
             supervisor_employee.middle_name AS supervisor_middle_name,
             supervisor_employee.last_name AS supervisor_last_name,
+            supervisor_employee.suffix AS supervisor_suffix,
             manager_employee.first_name AS manager_first_name,
             manager_employee.middle_name AS manager_middle_name,
-            manager_employee.last_name AS manager_last_name
+            manager_employee.last_name AS manager_last_name,
+            manager_employee.suffix AS manager_suffix
         FROM emp_leave
         LEFT JOIN employee ON emp_leave.userid = employee.id
         LEFT JOIN employee AS hr_employee ON emp_leave.hr = hr_employee.id
@@ -176,13 +204,49 @@ if (isset($_GET['id'])) {
     // -------------------------------------------------------
 
     // Format names
-    $name = ucwords(strtolower($leaveDetails['emp_first_name'] . ' ' . (isset($leaveDetails['emp_middle_name']) && $leaveDetails['emp_middle_name'] ? strtoupper(substr($leaveDetails['emp_middle_name'], 0, 1)) . '. ' : '') . $leaveDetails['emp_last_name']));
-    $hr_name = ucwords(strtolower($leaveDetails['hr_first_name'] . ' ' . (isset($leaveDetails['hr_middle_name']) && $leaveDetails['hr_middle_name'] ? strtoupper(substr($leaveDetails['hr_middle_name'], 0, 1)) . '. ' : '') . $leaveDetails['hr_last_name']));
-    $supervisor_name = ucwords(strtolower($leaveDetails['supervisor_first_name'] . ' ' . (isset($leaveDetails['supervisor_middle_name']) && $leaveDetails['supervisor_middle_name'] ? strtoupper(substr($leaveDetails['supervisor_middle_name'], 0, 1)) . '. ' : '') . $leaveDetails['supervisor_last_name']));
-    $manager_name = ucwords(strtolower($leaveDetails['manager_first_name'] . ' ' . (isset($leaveDetails['manager_middle_name']) && $leaveDetails['manager_middle_name'] ? strtoupper(substr($leaveDetails['manager_middle_name'], 0, 1)) . '. ' : '') . $leaveDetails['manager_last_name']));
+    $name = ucwords(strtolower(
+        $leaveDetails['emp_first_name'] . ' ' .
+        (isset($leaveDetails['emp_middle_name']) && $leaveDetails['emp_middle_name'] ? strtoupper(substr($leaveDetails['emp_middle_name'], 0, 1)) . '. ' : '') .
+        $leaveDetails['emp_last_name'] .
+        ($leaveDetails['emp_suffix'] ? ' ' . $leaveDetails['emp_suffix'] : '')
+    ));
+    $hr_name = getEmployeeDisplayName([
+        'first_name' => $leaveDetails['hr_first_name'],
+        'middle_name' => $leaveDetails['hr_middle_name'],
+        'last_name' => $leaveDetails['hr_last_name'],
+        'suffix' => $leaveDetails['hr_suffix']
+    ]);
+    $supervisor_name = getEmployeeDisplayName([
+        'first_name' => $leaveDetails['supervisor_first_name'],
+        'middle_name' => $leaveDetails['supervisor_middle_name'],
+        'last_name' => $leaveDetails['supervisor_last_name'],
+        'suffix' => $leaveDetails['supervisor_suffix']
+    ]);
+    $manager_name = getEmployeeDisplayName([
+        'first_name' => $leaveDetails['manager_first_name'],
+        'middle_name' => $leaveDetails['manager_middle_name'],
+        'last_name' => $leaveDetails['manager_last_name'],
+        'suffix' => $leaveDetails['manager_suffix']
+    ]);
 
     // For frontend button logic
     $isCancelable = in_array($leaveDetails['leave_status'], [1,2,3,4]);
+
+    // --- Get all ADMINISTRATOR employees for approver dropdowns ---
+    $stmt = $pdo->prepare("
+        SELECT e.id, e.first_name, e.middle_name, e.last_name, e.suffix
+        FROM employee e
+        INNER JOIN users u ON e.id = u.userid
+        WHERE u.level = 'ADMINISTRATOR'
+        ORDER BY e.last_name, e.first_name
+    ");
+    $stmt->execute();
+    $adminEmployees = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Current approver IDs for options
+    $currentHrId = $leaveDetails['hr'];
+    $currentSupervisorId = $leaveDetails['supervisor'];
+    $currentManagerId = $leaveDetails['manager'];
 } else {
     // Redirect if no leave ID is provided
     header("Location: myapplications?error=missing_leave_id");
@@ -219,7 +283,6 @@ function capitalize($text) {
     (
         $_SESSION['level'] === 'ADMINISTRATOR' &&
         (
-            $_SESSION['category'] === 'HR' ||
             $_SESSION['category'] === 'SUPERADMIN'
         )
     )
@@ -246,15 +309,16 @@ function capitalize($text) {
         data-hs-overlay="#hs-scale-animation-modal">
         Cancel Leave
         </a>
-
+           
+        <?php if ($_SESSION['level'] === 'ADMINISTRATOR' && $_SESSION['category'] === 'SUPERADMIN') : ?>
         <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700"
-        href="#"
         aria-haspopup="dialog"
         aria-expanded="false"
         aria-controls="hs-basic-modal"
         data-hs-overlay="#hs-basic-modal">
         Change Approvers
         </a>
+        <?php endif; ?>
  
 
         </div>
@@ -301,85 +365,85 @@ function capitalize($text) {
         </div>
         <!-- end modal --> 
 
-        <!-- change approvers modal --> 
+        <!-- Approver Modal -->
         <div id="hs-basic-modal" class="hs-overlay hs-overlay-open:opacity-100 hs-overlay-open:duration-500 hidden size-full fixed top-0 start-0 z-80 opacity-0 overflow-x-hidden transition-all overflow-y-auto pointer-events-none" role="dialog" tabindex="-1" aria-labelledby="hs-basic-modal-label">
-        <div class="sm:max-w-2xl sm:w-full m-3 sm:mx-auto">
-            <div class="flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl pointer-events-auto dark:bg-neutral-800 dark:border-neutral-700 dark:shadow-neutral-700/70">
-            
-            <div class="flex justify-between items-center py-3 px-4 border-b border-gray-200 dark:border-neutral-700">
-            <h3 id="hs-basic-modal-label" class="font-bold text-gray-800 dark:text-white">
-            Set Approvers
-            </h3>
-            <button type="button" class="size-8 inline-flex justify-center items-center gap-x-2 rounded-full border border-transparent bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-hidden focus:bg-gray-200 dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-neutral-400 dark:focus:bg-neutral-600" aria-label="Close" data-hs-overlay="#hs-basic-modal">
-            <span class="sr-only">Close</span>
-            <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 6 6 18"></path>
-            <path d="m6 6 12 12"></path>
-            </svg>
-            </button>
-            </div>
-
-            <div class="p-4 overflow-y-auto">
-            <!-- Approver 1 -->
-            <div class="py-4">
-            <label for="approver-1" class="inline-block text-sm font-normal dark:text-white mb-1">Human Resource</label>
-            <select id="approver-1"
-            class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg text-gray-400 cursor-not-allowed dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 disabled:text-gray-400 disabled:cursor-not-allowed"
-            disabled
-            >
-            <option>Select HR</option>
-            <option selected>John Doe (HR)</option>
-            <option>Jane Smith (HR)</option>
-            </select>
-            </div>
-            <!-- Approver 2 -->
-            <div class="py-4">
-            <label for="approver-2" class="inline-block text-sm font-normal dark:text-white mb-1">Immediate Supervisor</label>
-            <select id="approver-2"
-            class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg text-gray-400 cursor-not-allowed dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 disabled:text-gray-400 disabled:cursor-not-allowed"
-            disabled
-            >
-            <option>Select Supervisor</option>
-            <option selected>Michael Scott (Supervisor)</option>
-            <option>Dwight Schrute (Supervisor)</option>
-            </select>
-            </div>
-            <!-- Approver 3 -->
-            <div class="py-4">
-            <label for="approver-3" class="inline-block text-sm font-normal dark:text-white mb-1">Approving Officer</label>
-            <select id="approver-3"
-            class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg text-gray-400 cursor-not-allowed dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 disabled:text-gray-400 disabled:cursor-not-allowed"
-            disabled
-            >
-            <option>Select Manager</option>
-            <option selected>Pam Beesly (Manager)</option>
-            <option>Stanley Hudson (Manager)</option>
-            </select>
-            </div>
-            </div>
-
-            <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t border-gray-200 dark:border-neutral-700">
-            
-            <button type="button"
-            id="approver-edit-btn"
-            class="py-1.5 sm:py-2 px-3 inline-flex items-center text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 dark:bg-neutral-800 dark:border-neutral-700 dark:text-white">
-            Edit
-            </button>
-
-            <button type="button" id="approver-cancel-btn" style="display:none"
-            class="py-1.5 sm:py-2 px-3 inline-flex items-center text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 dark:bg-neutral-800 dark:border-neutral-700 dark:text-white">
-            Cancel
-            </button>
-
-            <button type="button" id="approver-save-btn" style="display:none"
-            class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-hidden focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none">
-            Save changes
-            </button>
-            </div>
+            <div class="sm:max-w-2xl sm:w-full m-3 sm:mx-auto">
+                <div class="flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl pointer-events-auto dark:bg-neutral-800 dark:border-neutral-700 dark:shadow-neutral-700/70">
+                    <div class="flex justify-between items-center py-3 px-4 border-b border-gray-200 dark:border-neutral-700">
+                        <h3 id="hs-basic-modal-label" class="font-bold text-gray-800 dark:text-white">Set Approvers</h3>
+                        <button type="button" class="size-8 inline-flex justify-center items-center gap-x-2 rounded-full border border-transparent bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-hidden focus:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-neutral-400 dark:focus:bg-neutral-600" aria-label="Close" data-hs-overlay="#hs-basic-modal">
+                            <span class="sr-only">Close</span>
+                            <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 6 6 18"></path>
+                                <path d="m6 6 12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="p-4 overflow-y-auto">
+                        <!-- HR -->
+                        <div class="py-4">
+                            <label for="approver-1" class="inline-block text-sm font-normal dark:text-white mb-1">Human Resource</label>
+                            <select id="approver-1" name="approver_hr"
+                                class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg text-gray-400 cursor-not-allowed dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 disabled:text-gray-400 disabled:cursor-not-allowed"
+                                disabled>
+                                <?php
+                                echo '<option value="' . htmlspecialchars($currentHrId) . '" selected>' . htmlspecialchars($hr_name) . ' (Current)</option>';
+                                foreach ($adminEmployees as $emp) {
+                                    if ($emp['id'] == $currentHrId) continue;
+                                    echo '<option value="' . htmlspecialchars($emp['id']) . '">' . htmlspecialchars(getEmployeeDisplayName($emp)) . '</option>';
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        <!-- Supervisor -->
+                        <div class="py-4">
+                            <label for="approver-2" class="inline-block text-sm font-normal dark:text-white mb-1">Immediate Supervisor</label>
+                            <select id="approver-2" name="approver_supervisor"
+                                class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg text-gray-400 cursor-not-allowed dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 disabled:text-gray-400 disabled:cursor-not-allowed"
+                                disabled>
+                                <?php
+                                echo '<option value="' . htmlspecialchars($currentSupervisorId) . '" selected>' . htmlspecialchars($supervisor_name) . ' (Current)</option>';
+                                foreach ($adminEmployees as $emp) {
+                                    if ($emp['id'] == $currentSupervisorId) continue;
+                                    echo '<option value="' . htmlspecialchars($emp['id']) . '">' . htmlspecialchars(getEmployeeDisplayName($emp)) . '</option>';
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        <!-- Manager -->
+                        <div class="py-4">
+                            <label for="approver-3" class="inline-block text-sm font-normal dark:text-white mb-1">Approving Officer</label>
+                            <select id="approver-3" name="approver_manager"
+                                class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs sm:text-sm rounded-lg text-gray-400 cursor-not-allowed dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 disabled:text-gray-400 disabled:cursor-not-allowed"
+                                disabled>
+                                <?php
+                                echo '<option value="' . htmlspecialchars($currentManagerId) . '" selected>' . htmlspecialchars($manager_name) . ' (Current)</option>';
+                                foreach ($adminEmployees as $emp) {
+                                    if ($emp['id'] == $currentManagerId) continue;
+                                    echo '<option value="' . htmlspecialchars($emp['id']) . '">' . htmlspecialchars(getEmployeeDisplayName($emp)) . '</option>';
+                                }
+                                ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t border-gray-200 dark:border-neutral-700">
+                        <button type="button"
+                            id="approver-edit-btn"
+                            class="py-1.5 sm:py-2 px-3 inline-flex items-center text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 dark:bg-neutral-800 dark:border-neutral-700 dark:text-white">
+                            Edit
+                        </button>
+                        <button type="button" id="approver-cancel-btn" style="display:none"
+                            class="py-1.5 sm:py-2 px-3 inline-flex items-center text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 dark:bg-neutral-800 dark:border-neutral-700 dark:text-white">
+                            Cancel
+                        </button>
+                        <button type="button" id="approver-save-btn" style="display:none"
+                            class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-hidden focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none">
+                            Save changes
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
-        </div>
-        <!-- end approvers modal --> 
 
         <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -388,74 +452,98 @@ function capitalize($text) {
             const saveBtn = document.getElementById('approver-save-btn');
             const cancelBtn = document.getElementById('approver-cancel-btn');
             const selects = [
-            document.getElementById('approver-1'),
-            document.getElementById('approver-2'),
-            document.getElementById('approver-3')
+                document.getElementById('approver-1'),
+                document.getElementById('approver-2'),
+                document.getElementById('approver-3')
             ];
+            // For AJAX post
+            const leaveId = <?php echo json_encode($requestid); ?>;
 
             // When modal opens, ensure selects are disabled and save/cancel are hidden
             function resetApproverModal() {
-            selects.forEach(sel => {
-            if (sel) {
-            sel.disabled = true;
-            sel.classList.add('text-gray-400', 'cursor-not-allowed');
-            sel.classList.remove('bg-gray-100');
-            }
-            });
-            if (saveBtn) saveBtn.style.display = 'none';
-            if (cancelBtn) cancelBtn.style.display = 'none';
-            if (editBtn) editBtn.style.display = '';
+                selects.forEach(sel => {
+                    if (sel) {
+                        sel.disabled = true;
+                        sel.classList.add('text-gray-400', 'cursor-not-allowed');
+                    }
+                });
+                if (saveBtn) saveBtn.style.display = 'none';
+                if (cancelBtn) cancelBtn.style.display = 'none';
+                if (editBtn) editBtn.style.display = '';
             }
 
             // Listen for modal open (Preline triggers 'show.hs.overlay' event)
             const modal = document.getElementById('hs-basic-modal');
             if (modal) {
-            modal.addEventListener('show.hs.overlay', resetApproverModal);
+                modal.addEventListener('show.hs.overlay', resetApproverModal);
             }
 
             // Edit button click: enable selects, show save/cancel, hide edit
             if (editBtn) {
-            editBtn.addEventListener('click', function() {
-            selects.forEach(sel => {
-            if (sel) {
-                sel.disabled = false;
-                sel.classList.remove('text-gray-400', 'cursor-not-allowed', 'bg-gray-100');
-            }
-            });
-            if (saveBtn) saveBtn.style.display = '';
-            if (cancelBtn) cancelBtn.style.display = '';
-            editBtn.style.display = 'none';
-            });
+                editBtn.addEventListener('click', function() {
+                    selects.forEach(sel => {
+                        if (sel) {
+                            sel.disabled = false;
+                            sel.classList.remove('text-gray-400', 'cursor-not-allowed');
+                        }
+                    });
+                    if (saveBtn) saveBtn.style.display = '';
+                    if (cancelBtn) cancelBtn.style.display = '';
+                    editBtn.style.display = 'none';
+                });
             }
 
-            // Cancel button click: revert to initial state and close modal (same as close button)
+            // Cancel button click: revert to initial state and close modal
             if (cancelBtn) {
-            cancelBtn.addEventListener('click', function() {
-            resetApproverModal();
-            // Trigger Preline's overlay close by simulating a click on the close button
-            const closeBtn = modal.querySelector('[data-hs-overlay="#hs-basic-modal"]');
-            if (closeBtn) {
-                closeBtn.click();
-            } else if (modal) {
-                // Fallback: force hide
-                modal.classList.add('hidden');
-                modal.classList.remove('block');
-                if (typeof window.HSOverlay !== 'undefined' && window.HSOverlay.close) {
-                window.HSOverlay.close(modal);
-                }
-            }
-            });
+                cancelBtn.addEventListener('click', function() {
+                    resetApproverModal();
+                    const closeBtn = modal.querySelector('[data-hs-overlay="#hs-basic-modal"]');
+                    if (closeBtn) {
+                        closeBtn.click();
+                    } else if (modal) {
+                        modal.classList.add('hidden');
+                        modal.classList.remove('block');
+                        if (typeof window.HSOverlay !== 'undefined' && window.HSOverlay.close) {
+                            window.HSOverlay.close(modal);
+                        }
+                    }
+                });
             }
 
-            // Cancel modal close button: close the modal
-            const modalCloseBtn = document.getElementById('modal-close-btn');
-            const cancelModal = document.getElementById('hs-scale-animation-modal');
-            if (modalCloseBtn && cancelModal) {
-            modalCloseBtn.addEventListener('click', function() {
-            // Preline uses data-hs-overlay, but for safety, also force hide
-            cancelModal.classList.add('hidden');
-            cancelModal.classList.remove('block');
-            });
+            // Save changes: AJAX POST
+            if (saveBtn) {
+                saveBtn.addEventListener('click', function() {
+                    const hrId = selects[0]?.value;
+                    const supervisorId = selects[1]?.value;
+                    const managerId = selects[2]?.value;
+                    saveBtn.disabled = true;
+                    saveBtn.textContent = "Saving...";
+                    fetch(window.location.pathname, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: new URLSearchParams({
+                            update_approvers: 1,
+                            leave_id: leaveId,
+                            hr: hrId,
+                            supervisor: supervisorId,
+                            manager: managerId
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert("Approvers updated!");
+                            window.location.reload();
+                        } else {
+                            alert("Failed: " + (data.error || "Unknown error"));
+                        }
+                    })
+                    .catch(() => alert("AJAX error."))
+                    .finally(() => {
+                        saveBtn.disabled = false;
+                        saveBtn.textContent = "Save changes";
+                    });
+                });
             }
         });
         </script>
@@ -691,6 +779,8 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 </script>
+
+<script src="/pulse/js/secure.js"></script>
 
 </body>
 </html>

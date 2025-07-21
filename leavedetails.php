@@ -662,5 +662,7 @@ document.getElementById('transfer-to-minister-btn').addEventListener('click', fu
 });
 </script>
 
+<script src="/pulse/js/secure.js"></script>
+
 </body>
 </html>

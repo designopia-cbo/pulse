@@ -746,5 +746,7 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 
+<script src="/pulse/js/secure.js"></script>
+
 </body>
 </html>
