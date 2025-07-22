@@ -29,6 +29,7 @@ if ($user) {
     $initial = "U";
 }
 
+
 // Handle AJAX search for employee (all PHP in one file, using GET for searchbox autocomplete)
 if (isset($_GET['ajax_search_employee']) && isset($_GET['q'])) {
     $q = trim($_GET['q']);
@@ -48,6 +49,11 @@ if (isset($_GET['ajax_search_employee']) && isset($_GET['q'])) {
     header('Content-Type: application/json');
     echo json_encode($results);
     exit;
+}
+
+function getTimeHM($datetime) {
+    $parts = date_parse($datetime);
+    return mktime($parts['hour'], $parts['minute'], 0, $parts['month'], $parts['day'], $parts['year']);
 }
 
 // Handle displaying timekeeping data based on filters
@@ -119,8 +125,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inclusive_date_from']
 
             // AM Tardiness: compare timeInAm to 8:00 AM (if present)
             if ($timeInAm) {
-                $schedAmIn = strtotime("$date 08:00:00");
-                $actualAmIn = strtotime($punchtimes[0]);
+                $schedAmIn = getTimeHM("$date 08:00:00");
+                $actualAmIn = getTimeHM($punchtimes[0]);
                 if ($actualAmIn > $schedAmIn) {
                     $tardy += round(($actualAmIn - $schedAmIn) / 60);
                 }
@@ -463,8 +469,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logs_employee_id'], $
 
             // AM Tardiness: compare timeInAm to 08:00 AM
             if ($timeInAm) {
-                $schedAmIn = strtotime("$date 08:00:00");
-                $actualAmIn = strtotime($punchtimes[0]);
+                $schedAmIn = getTimeHM("$date 08:00:00");
+                $actualAmIn = getTimeHM($punchtimes[0]);
                 if ($actualAmIn > $schedAmIn) {
                     $tardy += round(($actualAmIn - $schedAmIn) / 60);
                 }
@@ -637,7 +643,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logs_employee_id'], $
             <!-- Total -->
             <div class="flex flex-col">
               <?php if ($i === 0): ?>
-                <label for="logs-total-tardiness-<?php echo $i; ?>" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Total T/U in Minutes</label>
+                <label for="logs-total-tardiness-<?php echo $i; ?>" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Total T&U in Minutes</label>
               <?php endif; ?>
               <input type="text"
                 id="logs-total-tardiness-<?php echo $i; ?>"
