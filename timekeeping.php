@@ -29,17 +29,15 @@ if ($user) {
     $initial = "U";
 }
 
-// Handle AJAX search for employee
+// Handle AJAX search for employee (all PHP in one file, using GET for searchbox autocomplete)
 if (isset($_GET['ajax_search_employee']) && isset($_GET['q'])) {
     $q = trim($_GET['q']);
     if (strlen($q) < 2) {
         echo json_encode([]);
         exit;
     }
-
-    $stmt = $pdo->prepare("SELECT id, fullname FROM employee WHERE fullname LIKE :search LIMIT 10");
+    $stmt = $pdo->prepare("SELECT id, fullname FROM employee WHERE fullname LIKE :search AND status = 'ACTIVE' LIMIT 10");
     $stmt->execute([':search' => '%' . $q . '%']);
-
     $results = [];
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $results[] = [
@@ -47,12 +45,131 @@ if (isset($_GET['ajax_search_employee']) && isset($_GET['q'])) {
             'fullname' => $row['fullname']
         ];
     }
-
     header('Content-Type: application/json');
     echo json_encode($results);
     exit;
 }
 
+// Handle displaying timekeeping data based on filters
+// Only triggered on POST (form submit)
+$displayRows = [];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inclusive_date_from'], $_POST['inclusive_date_to'], $_POST['logs_employee_id'])) {
+    $from = $_POST['inclusive_date_from'];
+    $to = $_POST['inclusive_date_to'];
+    $employee_id = $_POST['logs_employee_id'];
+
+    // Validate input
+    if ($from && $to && $employee_id) {
+        // Get all punches for the employee in date range
+        $stmt = $pdo->prepare("SELECT id, punchtime FROM timekeeping WHERE userid = :userid AND punchtime BETWEEN :from AND :to ORDER BY punchtime ASC");
+        $stmt->execute([
+            ':userid' => $employee_id,
+            ':from' => $from . ' 00:00:00',
+            ':to' => $to . ' 23:59:59'
+        ]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Group records by date
+        $punchesByDate = [];
+        foreach ($rows as $row) {
+            $date = date('Y-m-d', strtotime($row['punchtime']));
+            if (!isset($punchesByDate[$date])) {
+                $punchesByDate[$date] = [];
+            }
+            $punchesByDate[$date][] = [
+                'id' => $row['id'],
+                'punchtime' => $row['punchtime']
+            ];
+        }
+
+        // Process each day
+        foreach ($punchesByDate as $date => $punches) {
+            // Sort punches by time ascending
+            usort($punches, function($a, $b) {
+                return strtotime($a['punchtime']) - strtotime($b['punchtime']);
+            });
+
+            // Extract times and IDs
+            $timeInAm = $timeOutAm = $timeInPm = $timeOutPm = '';
+            $idInAm = $idOutAm = $idInPm = $idOutPm = null;
+            $punchtimes = array_column($punches, 'punchtime');
+            $ids = array_column($punches, 'id');
+
+            // Assign punches (up to 4 per day)
+            if (count($punchtimes) > 0) {
+                $timeInAm = date('h:i A', strtotime($punchtimes[0]));
+                $idInAm = $ids[0];
+            }
+            if (count($punchtimes) > 1) {
+                $timeOutAm = date('h:i A', strtotime($punchtimes[1]));
+                $idOutAm = $ids[1];
+            }
+            if (count($punchtimes) > 2) {
+                $timeInPm = date('h:i A', strtotime($punchtimes[2]));
+                $idInPm = $ids[2];
+            }
+            if (count($punchtimes) > 3) {
+                $timeOutPm = date('h:i A', strtotime($punchtimes[3]));
+                $idOutPm = $ids[3];
+            }
+
+            // Calculate Total T/U in Minutes
+            $tardy = 0;
+            $undertime = 0;
+
+            // AM Tardiness: compare timeInAm to 8:00 AM (if present)
+            if ($timeInAm) {
+                $schedAmIn = strtotime("$date 08:00:00");
+                $actualAmIn = strtotime($punchtimes[0]);
+                if ($actualAmIn > $schedAmIn) {
+                    $tardy += round(($actualAmIn - $schedAmIn) / 60);
+                }
+            }
+            // AM Undertime: compare timeOutAm to 12:00 PM (if present)
+            if ($timeOutAm) {
+                $schedAmOut = strtotime("$date 12:00:00");
+                $actualAmOut = strtotime($punchtimes[1]);
+                if ($actualAmOut < $schedAmOut) {
+                    $undertime += round(($schedAmOut - $actualAmOut) / 60);
+                }
+            }
+            // PM Tardiness: compare timeInPm to 13:00 (if present)
+            if ($timeInPm) {
+                $schedPmIn = strtotime("$date 13:00:00");
+                $actualPmIn = strtotime($punchtimes[2]);
+                if ($actualPmIn > $schedPmIn) {
+                    $tardy += round(($actualPmIn - $schedPmIn) / 60);
+                }
+            }
+            // PM Undertime: compare timeOutPm to 17:00 (if present)
+            if ($timeOutPm) {
+                $schedPmOut = strtotime("$date 17:00:00");
+                $actualPmOut = strtotime($punchtimes[3]);
+                if ($actualPmOut < $schedPmOut) {
+                    $undertime += round(($schedPmOut - $actualPmOut) / 60);
+                }
+            }
+
+            $tuTotal = $tardy + $undertime;
+
+            // Prepare final display row
+            $displayRows[] = [
+                'date' => $date,
+                'day' => date('j', strtotime($date)),
+                'weekday' => date('l', strtotime($date)),
+                'time_in_am' => $timeInAm,
+                'id_in_am' => $idInAm,
+                'time_out_am' => $timeOutAm,
+                'id_out_am' => $idOutAm,
+                'time_in_pm' => $timeInPm,
+                'id_in_pm' => $idInPm,
+                'time_out_pm' => $timeOutPm,
+                'id_out_pm' => $idOutPm,
+                'tu_total' => $tuTotal
+            ];
+        }
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -260,7 +377,143 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
         With supporting text below as a natural lead-in to additional content.
       </p>
 
-      <form method="post" id="logs-form">
+<?php
+// --- PHP for searchbox autocomplete (AJAX via GET) ---
+if (isset($_GET['ajax_search_employee']) && isset($_GET['q'])) {
+    require_once('init.php');
+    $q = trim($_GET['q']);
+    if (strlen($q) < 2) {
+        echo json_encode([]);
+        exit;
+    }
+    $stmt = $pdo->prepare("SELECT id, fullname FROM employee WHERE fullname LIKE :search AND status = 'ACTIVE' LIMIT 10");
+    $stmt->execute([':search' => '%' . $q . '%']);
+    $results = [];
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $results[] = [
+            'id' => $row['id'],
+            'fullname' => $row['fullname']
+        ];
+    }
+    header('Content-Type: application/json');
+    echo json_encode($results);
+    exit;
+}
+
+// --- PHP for loading punch log data (multiple days) ---
+$displayRows = [];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logs_employee_id'], $_POST['logs_date_from'], $_POST['logs_date_to'])) {
+    require_once('init.php');
+    $employee_id = $_POST['logs_employee_id'];
+    $date_from = $_POST['logs_date_from'];
+    $date_to   = $_POST['logs_date_to'];
+
+    if ($employee_id && $date_from && $date_to) {
+        // Get all punches for the selected employee and date range
+        $stmt = $pdo->prepare("SELECT id, punchtime FROM timekeeping WHERE userid = :userid AND punchtime BETWEEN :from AND :to ORDER BY punchtime ASC");
+        $stmt->execute([
+            ':userid' => $employee_id,
+            ':from' => $date_from . ' 00:00:00',
+            ':to' => $date_to . ' 23:59:59'
+        ]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Group punches by date
+        $punchesByDate = [];
+        foreach ($rows as $row) {
+            $date = date('Y-m-d', strtotime($row['punchtime']));
+            if (!isset($punchesByDate[$date])) $punchesByDate[$date] = [];
+            $punchesByDate[$date][] = [
+                'id' => $row['id'],
+                'punchtime' => $row['punchtime']
+            ];
+        }
+
+        foreach ($punchesByDate as $date => $punches) {
+            usort($punches, function($a, $b) {
+                return strtotime($a['punchtime']) - strtotime($b['punchtime']);
+            });
+
+            $timeInAm = $timeOutAm = $timeInPm = $timeOutPm = '';
+            $idInAm = $idOutAm = $idInPm = $idOutPm = null;
+            $punchtimes = array_column($punches, 'punchtime');
+            $ids = array_column($punches, 'id');
+
+            // Assign up to 4 punches per day
+            if (count($punchtimes) > 0) {
+                $timeInAm = date('h:i A', strtotime($punchtimes[0]));
+                $idInAm = $ids[0];
+            }
+            if (count($punchtimes) > 1) {
+                $timeOutAm = date('h:i A', strtotime($punchtimes[1]));
+                $idOutAm = $ids[1];
+            }
+            if (count($punchtimes) > 2) {
+                $timeInPm = date('h:i A', strtotime($punchtimes[2]));
+                $idInPm = $ids[2];
+            }
+            if (count($punchtimes) > 3) {
+                $timeOutPm = date('h:i A', strtotime($punchtimes[3]));
+                $idOutPm = $ids[3];
+            }
+
+            // Calculate T/U in Minutes
+            $tardy = 0;
+            $undertime = 0;
+
+            // AM Tardiness: compare timeInAm to 08:00 AM
+            if ($timeInAm) {
+                $schedAmIn = strtotime("$date 08:00:00");
+                $actualAmIn = strtotime($punchtimes[0]);
+                if ($actualAmIn > $schedAmIn) {
+                    $tardy += round(($actualAmIn - $schedAmIn) / 60);
+                }
+            }
+            // AM Undertime: compare timeOutAm to 12:00 PM
+            if ($timeOutAm) {
+                $schedAmOut = strtotime("$date 12:00:00");
+                $actualAmOut = strtotime($punchtimes[1]);
+                if ($actualAmOut < $schedAmOut) {
+                    $undertime += round(($schedAmOut - $actualAmOut) / 60);
+                }
+            }
+            // PM Tardiness: compare timeInPm to 13:00
+            if ($timeInPm) {
+                $schedPmIn = strtotime("$date 13:00:00");
+                $actualPmIn = strtotime($punchtimes[2]);
+                if ($actualPmIn > $schedPmIn) {
+                    $tardy += round(($actualPmIn - $schedPmIn) / 60);
+                }
+            }
+            // PM Undertime: compare timeOutPm to 17:00
+            if ($timeOutPm) {
+                $schedPmOut = strtotime("$date 17:00:00");
+                $actualPmOut = strtotime($punchtimes[3]);
+                if ($actualPmOut < $schedPmOut) {
+                    $undertime += round(($schedPmOut - $actualPmOut) / 60);
+                }
+            }
+
+            $tuTotal = $tardy + $undertime;
+
+            $displayRows[] = [
+                'date' => date('j - l', strtotime($date)),
+                'time_in_am' => $timeInAm,
+                'id_in_am' => $idInAm,
+                'time_out_am' => $timeOutAm,
+                'id_out_am' => $idOutAm,
+                'time_in_pm' => $timeInPm,
+                'id_in_pm' => $idInPm,
+                'time_out_pm' => $timeOutPm,
+                'id_out_pm' => $idOutPm,
+                'tu_total' => $tuTotal
+            ];
+        }
+    }
+}
+?>
+
+      <form method="post" id="logs-form" autocomplete="off">
         <!-- Inclusive Date Fields -->
         <div class="mb-4 flex flex-col sm:flex-row gap-4">
           <div class="flex-1">
@@ -268,14 +521,16 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
               From
             </label>
             <input type="date" id="logs-date-from" name="logs_date_from"
-              class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
+              class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+              value="<?php echo htmlspecialchars($_POST['logs_date_from'] ?? ''); ?>">
           </div>
           <div class="flex-1">
             <label for="logs-date-to" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">
               To
             </label>
             <input type="date" id="logs-date-to" name="logs_date_to"
-              class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
+              class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+              value="<?php echo htmlspecialchars($_POST['logs_date_to'] ?? ''); ?>">
           </div>
         </div>
         <!-- End Inclusive Date Fields -->
@@ -289,8 +544,9 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
           <label for="logs-employee-search" class="sr-only">Search</label>
           <input type="text" id="logs-employee-search" name="logs_employee_search"
             class="py-1.5 sm:py-2 px-3 ps-10 block w-full border-gray-200 rounded-lg sm:text-sm focus:border-blue-500 focus:ring-blue-500 shadow-2xs disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-            placeholder="Search for employee" autocomplete="off">
-          <input type="hidden" id="logs-employee-id" name="logs_employee_id" value="">
+            placeholder="Search for employee" autocomplete="off"
+            value="<?php echo htmlspecialchars($_POST['logs_employee_search'] ?? ''); ?>">
+          <input type="hidden" id="logs-employee-id" name="logs_employee_id" value="<?php echo htmlspecialchars($_POST['logs_employee_id'] ?? ''); ?>">
           <div class="absolute inset-y-0 start-0 flex items-center pointer-events-none ps-3.5 z-20">
             <svg class="size-4 text-gray-400 dark:text-white/60" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -304,7 +560,7 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
             <!-- Suggestions will be injected here as divs -->
           </div>
         </div>
-        <!-- End Search Box -->      
+        <!-- End Search Box -->
 
         <!-- Edit Logs Button -->
         <div class="mb-4">
@@ -319,64 +575,82 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
         </div>
         <!-- End Edit Logs Button -->
 
-        <!-- Time Picker Fields -->
-        <div class="grid grid-cols-1 sm:grid-cols-6 gap-4 mb-6">
-          <!-- Date -->
-          <div class="flex flex-col">
-            <label for="logs-date" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Date</label>
-            <input type="text"
-              id="logs-date"
-              name="logs_date"
-              class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-              placeholder="1 - Monday">
+        <!-- Dynamically generate one set of fields per day -->
+        <?php if (!empty($displayRows)) : ?>
+          <?php foreach ($displayRows as $i => $row): ?>
+          <div class="grid grid-cols-1 sm:grid-cols-6 gap-4 mb-6">
+            <!-- Date -->
+            <div class="flex flex-col">
+              <?php if ($i === 0): ?>
+                <label for="logs-date-<?php echo $i; ?>" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Date</label>
+              <?php endif; ?>
+              <input type="text"
+                id="logs-date-<?php echo $i; ?>"
+                name="logs_date[]"
+                class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                value="<?php echo htmlspecialchars($row['date']); ?>" readonly>
+            </div>
+            <!-- Time In (AM) -->
+            <div class="flex flex-col">
+              <?php if ($i === 0): ?>
+                <label for="logs-time-in-am-<?php echo $i; ?>" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Time In (AM)</label>
+              <?php endif; ?>
+              <input type="text"
+                id="logs-time-in-am-<?php echo $i; ?>"
+                name="logs_time_in_am[]"
+                class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                value="<?php echo htmlspecialchars($row['time_in_am']); ?>">
+            </div>
+            <!-- Time Out (AM) -->
+            <div class="flex flex-col">
+              <?php if ($i === 0): ?>
+                <label for="logs-time-out-am-<?php echo $i; ?>" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Time Out (AM)</label>
+              <?php endif; ?>
+              <input type="text"
+                id="logs-time-out-am-<?php echo $i; ?>"
+                name="logs_time_out_am[]"
+                class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                value="<?php echo htmlspecialchars($row['time_out_am']); ?>">
+            </div>
+            <!-- Time In (PM) -->
+            <div class="flex flex-col">
+              <?php if ($i === 0): ?>
+                <label for="logs-time-in-pm-<?php echo $i; ?>" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Time In (PM)</label>
+              <?php endif; ?>
+              <input type="text"
+                id="logs-time-in-pm-<?php echo $i; ?>"
+                name="logs_time_in_pm[]"
+                class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                value="<?php echo htmlspecialchars($row['time_in_pm']); ?>">
+            </div>
+            <!-- Time Out (PM) -->
+            <div class="flex flex-col">
+              <?php if ($i === 0): ?>
+                <label for="logs-time-out-pm-<?php echo $i; ?>" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Time Out (PM)</label>
+              <?php endif; ?>
+              <input type="text"
+                id="logs-time-out-pm-<?php echo $i; ?>"
+                name="logs_time_out_pm[]"
+                class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                value="<?php echo htmlspecialchars($row['time_out_pm']); ?>">
+            </div>
+            <!-- Total -->
+            <div class="flex flex-col">
+              <?php if ($i === 0): ?>
+                <label for="logs-total-tardiness-<?php echo $i; ?>" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Total T/U in Minutes</label>
+              <?php endif; ?>
+              <input type="text"
+                id="logs-total-tardiness-<?php echo $i; ?>"
+                name="logs_total_tardiness[]"
+                class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+                value="<?php echo htmlspecialchars($row['tu_total']); ?>" readonly>
+            </div>
           </div>
-          <!-- Time In (AM) -->
-          <div class="flex flex-col">
-            <label for="logs-time-in-am" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Time In (AM)</label>
-            <input type="time"
-              id="logs-time-in-am"
-              name="logs_time_in_am"
-              class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-              placeholder="Time In">
-          </div>
-          <!-- Time Out (AM) -->
-          <div class="flex flex-col">
-            <label for="logs-time-out-am" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Time Out (AM)</label>
-            <input type="time"
-              id="logs-time-out-am"
-              name="logs_time_out_am"
-              class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-              placeholder="Time Out">
-          </div>
-          <!-- Time In (PM) -->
-          <div class="flex flex-col">
-            <label for="logs-time-in-pm" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Time In (PM)</label>
-            <input type="time"
-              id="logs-time-in-pm"
-              name="logs_time_in_pm"
-              class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-              placeholder="Time In">
-          </div>
-          <!-- Time Out (PM) -->
-          <div class="flex flex-col">
-            <label for="logs-time-out-pm" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Time Out (PM)</label>
-            <input type="time"
-              id="logs-time-out-pm"
-              name="logs_time_out_pm"
-              class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-              placeholder="Time Out">
-          </div>
-          <!-- Total -->
-          <div class="flex flex-col">
-            <label for="logs-total-tardiness" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Total T/U in Minutes</label>
-            <input type="text"
-              id="logs-total-tardiness"
-              name="logs_total_tardiness"
-              class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-              placeholder="36" readonly>
-          </div>
-        </div>
-        <!-- End Time Picker Fields -->
+          <?php endforeach; ?>
+        <?php elseif ($_SERVER['REQUEST_METHOD'] === 'POST') : ?>
+          <div class="text-sm text-gray-500 dark:text-neutral-400">No punch logs found for the selected criteria.</div>
+        <?php endif; ?>
+        <!-- End Multiple Dynamic Days -->
 
         <div class="mt-1 flex justify-end gap-x-2">
           <button type="button" class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none focus:outline-hidden focus:bg-gray-50 dark:bg-transparent dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:focus:bg-neutral-800">
@@ -402,29 +676,7 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
           With supporting text below as a natural lead-in to additional content.
         </p>
 
-        <form method="post" id="tardiness-form">
-          <!-- Inclusive Date Fields -->
-          <div class="mb-4 flex flex-col sm:flex-row gap-4">
-            <div class="flex-1">
-              <label for="inclusive-date-from" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">
-                From
-              </label>
-              <input type="date" id="inclusive-date-from" name="inclusive_date_from"
-                class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
-            </div>
-            <div class="flex-1">
-              <label for="inclusive-date-to" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">
-                To
-              </label>
-              <input type="date" id="inclusive-date-to" name="inclusive_date_to"
-                class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
-            </div>
-          </div>
-          <!-- End Inclusive Date Fields -->
-
-          <!-- Separator -->
-          <div class="mb-4 py-0 flex items-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:after:border-neutral-600"></div>
-          <!-- End Separator -->
+        <form method="post" id="tardiness-form">          
 
           <!-- Time Picker Fields -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
@@ -554,7 +806,6 @@ document.addEventListener("DOMContentLoaded", function() {
     }, 200);
   });
 
-  // Hide suggestions on blur
   searchInput.addEventListener("blur", function() {
     setTimeout(() => {
       suggestionsBox.style.display = "none";
@@ -562,7 +813,6 @@ document.addEventListener("DOMContentLoaded", function() {
   });
 });
 </script>
-
 
 
 </body>
