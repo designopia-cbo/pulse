@@ -29,6 +29,30 @@ if ($user) {
     $initial = "U";
 }
 
+// Handle AJAX search for employee
+if (isset($_GET['ajax_search_employee']) && isset($_GET['q'])) {
+    $q = trim($_GET['q']);
+    if (strlen($q) < 2) {
+        echo json_encode([]);
+        exit;
+    }
+
+    $stmt = $pdo->prepare("SELECT id, fullname FROM employee WHERE fullname LIKE :search LIMIT 10");
+    $stmt->execute([':search' => '%' . $q . '%']);
+
+    $results = [];
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $results[] = [
+            'id' => $row['id'],
+            'fullname' => $row['fullname']
+        ];
+    }
+
+    header('Content-Type: application/json');
+    echo json_encode($results);
+    exit;
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -183,7 +207,7 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
           Cancel
         </button>
         <button type="button" class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-hidden focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none">
-          Save changes
+          Upload Logs
         </button>
       </div>
       
@@ -264,11 +288,11 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
         <div class="mb-4 flex-1 relative max-w-full">
           <label for="logs-employee-search" class="sr-only">Search</label>
           <input type="text" id="logs-employee-search" name="logs_employee_search"
-            class="py-1.5 sm:py-2 px-3 ps-9 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+            class="py-1.5 sm:py-2 px-3 ps-10 block w-full border-gray-200 rounded-lg sm:text-sm focus:border-blue-500 focus:ring-blue-500 shadow-2xs disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
             placeholder="Search for employee" autocomplete="off">
-          <div class="absolute inset-y-0 start-0 flex items-center pointer-events-none ps-3">
-            <svg class="size-4 text-gray-400 dark:text-neutral-500" xmlns="http://www.w3.org/2000/svg"
-              width="24" height="24" viewBox="0 0 24 24" fill="none"
+          <input type="hidden" id="logs-employee-id" name="logs_employee_id" value="">
+          <div class="absolute inset-y-0 start-0 flex items-center pointer-events-none ps-3.5 z-20">
+            <svg class="size-4 text-gray-400 dark:text-white/60" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round"
               stroke-linejoin="round">
               <circle cx="11" cy="11" r="8"></circle>
@@ -276,9 +300,11 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
             </svg>
           </div>
           <!-- Suggestions Dropdown -->
-          <ul id="employee-suggestions" class="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto hidden dark:bg-neutral-900 dark:border-neutral-700"></ul>
+          <div id="employee-suggestions" class="absolute z-50 w-full bg-white border border-gray-200 rounded-xl shadow-xl mt-1 max-h-60 overflow-y-auto hidden dark:bg-neutral-800 dark:border-neutral-700 p-2">
+            <!-- Suggestions will be injected here as divs -->
+          </div>
         </div>
-        <!-- End Search Box -->        
+        <!-- End Search Box -->      
 
         <!-- Edit Logs Button -->
         <div class="mb-4">
@@ -485,55 +511,59 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
 </script>
 
 <script>
-        document.addEventListener("DOMContentLoaded", function() {
-          const searchInput = document.getElementById("logs-employee-search");
-          const suggestionsBox = document.getElementById("employee-suggestions");
+document.addEventListener("DOMContentLoaded", function() {
+  const searchInput = document.getElementById("logs-employee-search");
+  const suggestionsBox = document.getElementById("employee-suggestions");
+  const hiddenIdInput = document.getElementById("logs-employee-id");
+  let debounceTimeout;
 
-          let debounceTimeout;
+  searchInput.addEventListener("input", function() {
+    const query = this.value.trim();
+    clearTimeout(debounceTimeout);
+    hiddenIdInput.value = "";
 
-          searchInput.addEventListener("input", function() {
-            const query = this.value.trim();
-            clearTimeout(debounceTimeout);
+    if (query.length < 2) {
+      suggestionsBox.innerHTML = "";
+      suggestionsBox.style.display = "none";
+      return;
+    }
 
-            if (query.length < 2) {
-              suggestionsBox.innerHTML = "";
-              suggestionsBox.style.display = "none";
-              return;
-            }
-
-            debounceTimeout = setTimeout(() => {
-              fetch(`/pulse/ajax/search_employee.php?q=${encodeURIComponent(query)}`)
-          .then(response => response.json())
-          .then(data => {
-            suggestionsBox.innerHTML = "";
-            if (data.length > 0) {
-              data.forEach(emp => {
-                const li = document.createElement("li");
-                li.textContent = emp.fullname;
-                li.className = "px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-800";
-                li.addEventListener("mousedown", function(e) {
-            searchInput.value = emp.fullname;
-            suggestionsBox.innerHTML = "";
-            suggestionsBox.style.display = "none";
-                });
-                suggestionsBox.appendChild(li);
+    debounceTimeout = setTimeout(() => {
+      fetch(`timekeeping.php?ajax_search_employee=1&q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(data => {
+          suggestionsBox.innerHTML = "";
+          if (data.length > 0) {
+            data.forEach(emp => {
+              const item = document.createElement("div");
+              item.className = "cursor-pointer p-2 w-full text-sm text-gray-800 hover:bg-gray-100 rounded-lg focus:outline-none focus:bg-gray-100 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-neutral-200 dark:focus:bg-neutral-700";
+              item.textContent = emp.fullname;
+              item.addEventListener("mousedown", function(e) {
+                searchInput.value = emp.fullname;
+                hiddenIdInput.value = emp.id;
+                suggestionsBox.innerHTML = "";
+                suggestionsBox.style.display = "none";
               });
-              suggestionsBox.style.display = "block";
-            } else {
-              suggestionsBox.style.display = "none";
-            }
-          });
-            }, 200);
-          });
-
-          // Hide suggestions on blur
-          searchInput.addEventListener("blur", function() {
-            setTimeout(() => {
-              suggestionsBox.style.display = "none";
-            }, 100);
-          });
+              suggestionsBox.appendChild(item);
+            });
+            suggestionsBox.style.display = "block";
+          } else {
+            suggestionsBox.style.display = "none";
+          }
         });
-        </script>
+    }, 200);
+  });
+
+  // Hide suggestions on blur
+  searchInput.addEventListener("blur", function() {
+    setTimeout(() => {
+      suggestionsBox.style.display = "none";
+    }, 100);
+  });
+});
+</script>
+
+
 
 </body>
 </html>
