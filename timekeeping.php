@@ -292,54 +292,7 @@ dark:bg-neutral-800 dark:border-neutral-700" role="dialog" tabindex="-1" aria-la
 
 <!-- Content -->
 <div class="w-full lg:ps-64">
-  <div class="p-4 sm:p-6 space-y-4 sm:space-y-6">      
-   
-   <!-- Card -->
-<div class="bg-white border border-gray-200 rounded-xl shadow-2xs overflow-hidden dark:bg-neutral-800 dark:border-neutral-700">
-  <div class="p-10">
-    <h2 class="text-xl font-bold text-gray-800 dark:text-neutral-200">
-      Upload Timekeeping Logs
-    </h2>
-    <p class="text-sm text-gray-600 dark:text-neutral-400 mb-8">
-      Upload the .xls file containing the logs of employee time in and out.
-    </p>
-
-    <form method="post" enctype="multipart/form-data" id="tardiness-upload-form">
-      <!-- File Upload Section -->
-      <div class="grid sm:grid-cols-12 gap-2 sm:gap-4 py-8 first:pt-0 last:pb-0 border-t first:border-transparent border-gray-200 dark:border-neutral-700 dark:first:border-transparent">
-        <div class="sm:col-span-3">
-          <label for="tardiness_file" class="inline-block text-sm font-normal text-gray-500 mt-2.5 dark:text-neutral-500">
-            Time Keeping File (.xls)
-          </label>
-        </div>
-        <div class="sm:col-span-9">
-          <label for="tardiness_file" class="sr-only">Choose file</label>
-          <input type="file" name="tardiness_file" id="tardiness_file"
-            class="block w-full border border-gray-200 rounded-lg sm:text-sm focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400
-            file:bg-gray-50 file:border-0
-            file:bg-gray-100 file:me-4
-            file:py-2 file:px-4
-            dark:file:bg-neutral-700 dark:file:text-neutral-400"
-            required>
-        </div>
-      </div>
-      <!-- End File Upload Section -->
-
-      <div class="mt-1 flex justify-end gap-x-2">
-        <button type="button" class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none focus:outline-hidden focus:bg-gray-50 dark:bg-transparent dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:focus:bg-neutral-800">
-          Cancel
-        </button>
-        <button type="button" class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-hidden focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none">
-          Upload Logs
-        </button>
-      </div>
-      
-    </form>
-
-  </div>
-</div>
-<!-- End Card -->
-
+  <div class="p-4 sm:p-6 space-y-4 sm:space-y-6">    
 <!-- Card -->
 <div class="flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl dark:bg-neutral-900 dark:border-neutral-700 dark:shadow-neutral-700/70">
   <!-- Select (Mobile only) -->
@@ -588,68 +541,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logs_employee_id'], $
             <!-- Date -->
             <div class="flex flex-col">
               <?php if ($i === 0): ?>
-                <label for="logs-date-<?php echo $i; ?>" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Date</label>
+          <label for="logs-date-<?php echo $i; ?>" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Date</label>
               <?php endif; ?>
               <input type="text"
-                id="logs-date-<?php echo $i; ?>"
-                name="logs_date[]"
-                class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-                value="<?php echo htmlspecialchars($row['date']); ?>" readonly>
+          id="logs-date-<?php echo $i; ?>"
+          name="logs_date[]"
+          class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+          value="<?php echo htmlspecialchars($row['date']); ?>" readonly>
             </div>
             <!-- Time In (AM) -->
             <div class="flex flex-col">
               <?php if ($i === 0): ?>
-                <label for="logs-time-in-am-<?php echo $i; ?>" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Time In (AM)</label>
+          <label for="logs-time-in-am-<?php echo $i; ?>" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Time In (AM)</label>
               <?php endif; ?>
-              <input type="text"
-                id="logs-time-in-am-<?php echo $i; ?>"
-                name="logs_time_in_am[]"
-                class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-                value="<?php echo htmlspecialchars($row['time_in_am']); ?>">
+              <input type="time"
+          id="logs-time-in-am-<?php echo $i; ?>"
+          name="logs_time_in_am[]"
+          class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+          value="<?php echo !empty($row['time_in_am']) ? date('H:i', strtotime($row['time_in_am'])) : ''; ?>">
             </div>
             <!-- Time Out (AM) -->
             <div class="flex flex-col">
               <?php if ($i === 0): ?>
-                <label for="logs-time-out-am-<?php echo $i; ?>" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Time Out (AM)</label>
+          <label for="logs-time-out-am-<?php echo $i; ?>" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Time Out (AM)</label>
               <?php endif; ?>
-              <input type="text"
-                id="logs-time-out-am-<?php echo $i; ?>"
-                name="logs_time_out_am[]"
-                class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-                value="<?php echo htmlspecialchars($row['time_out_am']); ?>">
+              <input type="time"
+          id="logs-time-out-am-<?php echo $i; ?>"
+          name="logs_time_out_am[]"
+          class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+          value="<?php echo !empty($row['time_out_am']) ? date('H:i', strtotime($row['time_out_am'])) : ''; ?>">
             </div>
             <!-- Time In (PM) -->
             <div class="flex flex-col">
               <?php if ($i === 0): ?>
-                <label for="logs-time-in-pm-<?php echo $i; ?>" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Time In (PM)</label>
+          <label for="logs-time-in-pm-<?php echo $i; ?>" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Time In (PM)</label>
               <?php endif; ?>
-              <input type="text"
-                id="logs-time-in-pm-<?php echo $i; ?>"
-                name="logs_time_in_pm[]"
-                class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-                value="<?php echo htmlspecialchars($row['time_in_pm']); ?>">
+              <input type="time"
+          id="logs-time-in-pm-<?php echo $i; ?>"
+          name="logs_time_in_pm[]"
+          class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+          value="<?php echo !empty($row['time_in_pm']) ? date('H:i', strtotime($row['time_in_pm'])) : ''; ?>">
             </div>
             <!-- Time Out (PM) -->
             <div class="flex flex-col">
               <?php if ($i === 0): ?>
-                <label for="logs-time-out-pm-<?php echo $i; ?>" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Time Out (PM)</label>
+          <label for="logs-time-out-pm-<?php echo $i; ?>" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Time Out (PM)</label>
               <?php endif; ?>
-              <input type="text"
-                id="logs-time-out-pm-<?php echo $i; ?>"
-                name="logs_time_out_pm[]"
-                class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-                value="<?php echo htmlspecialchars($row['time_out_pm']); ?>">
+              <input type="time"
+          id="logs-time-out-pm-<?php echo $i; ?>"
+          name="logs_time_out_pm[]"
+          class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+          value="<?php echo !empty($row['time_out_pm']) ? date('H:i', strtotime($row['time_out_pm'])) : ''; ?>">
             </div>
             <!-- Total -->
             <div class="flex flex-col">
               <?php if ($i === 0): ?>
-                <label for="logs-total-tardiness-<?php echo $i; ?>" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Total T&U in Minutes</label>
+          <label for="logs-total-tardiness-<?php echo $i; ?>" class="block text-sm font-normal text-gray-500 mb-1 dark:text-neutral-500">Total T&U in Minutes</label>
               <?php endif; ?>
               <input type="text"
-                id="logs-total-tardiness-<?php echo $i; ?>"
-                name="logs_total_tardiness[]"
-                class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
-                value="<?php echo htmlspecialchars($row['tu_total']); ?>" readonly>
+          id="logs-total-tardiness-<?php echo $i; ?>"
+          name="logs_total_tardiness[]"
+          class="py-1.5 sm:py-2 px-3 block w-full border-gray-200 shadow-2xs rounded-lg sm:text-sm relative focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600"
+          value="<?php echo htmlspecialchars($row['tu_total']); ?>" readonly>
             </div>
           </div>
           <?php endforeach; ?>
@@ -801,6 +754,11 @@ document.addEventListener("DOMContentLoaded", function() {
                 hiddenIdInput.value = emp.id;
                 suggestionsBox.innerHTML = "";
                 suggestionsBox.style.display = "none";
+                // Automatically submit the form as if Enter was pressed
+                const form = searchInput.closest('form');
+                if (form) {
+                  form.submit();
+                }
               });
               suggestionsBox.appendChild(item);
             });
