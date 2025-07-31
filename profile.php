@@ -567,15 +567,13 @@ if ($user) {
         // Check if user can edit profile image
         $can_edit_image = false;
         
-        // Allow if viewing own profile
-        if ($profile_userid === $_SESSION['userid']) {
-          $can_edit_image = true;
-        }
-        // Allow if user is ADMINISTRATOR with HR or SUPERADMIN category
-        elseif (isset($_SESSION['level'], $_SESSION['category']) 
-                && $_SESSION['level'] === 'ADMINISTRATOR' 
-                && in_array($_SESSION['category'], ['HR', 'SUPERADMIN'])) {
-          $can_edit_image = true;
+        // Only allow if user is ADMINISTRATOR AND category is HR or SUPERADMIN
+        if (
+            isset($_SESSION['level'], $_SESSION['category']) &&
+            $_SESSION['level'] === 'ADMINISTRATOR' &&
+            in_array($_SESSION['category'], ['HR', 'SUPERADMIN'])
+        ) {
+            $can_edit_image = true;
         }
         
         if (file_exists($profile_image_path)) {
@@ -613,11 +611,19 @@ if ($user) {
       </div>
     </div>
 
-         <?php
-          // Only show dropdown if level is ADMINISTRATOR and category is AAO or HR
-          $show_admin_dropdown = isset($_SESSION['level'], $_SESSION['category'])
-            && $_SESSION['level'] === 'ADMINISTRATOR'
-            && in_array($_SESSION['category'], ['AAO', 'HR', 'SUPERADMIN']);
+        <?php
+          // Only show dropdown if level is ADMINISTRATOR and category is AAO or SUPERADMIN,
+          // or category is HR with permission >= 2
+          $show_admin_dropdown = isset($_SESSION['level'], $_SESSION['category']) &&
+            $_SESSION['level'] === 'ADMINISTRATOR' &&
+            (
+              in_array($_SESSION['category'], ['AAO', 'SUPERADMIN']) ||
+              (
+                $_SESSION['category'] === 'HR' &&
+                isset($_SESSION['permission']) &&
+                $_SESSION['permission'] >= 2
+              )
+            );
         ?>
 
         <?php if ($show_admin_dropdown): ?>
@@ -633,24 +639,30 @@ if ($user) {
 
           <div class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-60 bg-white shadow-md rounded-lg mt-2 dark:bg-neutral-800 dark:border dark:border-neutral-700" role="menu" aria-orientation="vertical" aria-labelledby="hs-dropdown-profile-trigger">
             <div class="p-1 space-y-0.5">
-              <?php
+
+            <?php
                 // Determine if we are viewing own profile (no userid param) or someone else's
                 $is_own_profile = !isset($_GET['userid']) || intval($_GET['userid']) === intval($_SESSION['userid']);
                 $edit_profile_href = $is_own_profile
                     ? 'editprofile'
                     : 'editprofile?userid=' . urlencode($profile_userid);
-              ?>
-              <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700"
+            ?>
+
+            <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700"
                  href="<?= htmlspecialchars($edit_profile_href) ?>">
                  <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M17 3a2.828 2.828 0 0 1 4 4L7 21H3v-4L17 3z"/>
                 </svg>        
                 Edit Profile
-              </a>
+            </a>
 
-              <div class="py-1 flex items-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200  dark:text-white dark:after:border-neutral-600"></div>
-
-              <a
+            
+            
+            <?php if (isset($_SESSION['level'], $_SESSION['category']) && $_SESSION['level'] === 'ADMINISTRATOR' && ($_SESSION['category'] === 'SUPERADMIN' || ($_SESSION['category'] === 'HR' && isset($_SESSION['permission']) && $_SESSION['permission'] >= 3)) ): ?>
+            
+            <div class="py-1 flex items-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200  dark:text-white dark:after:border-neutral-600"></div>
+            
+            <a
               id="admin-option-link"
               href="#"
               class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700">
@@ -662,8 +674,10 @@ if ($user) {
                 </svg>
               Effective Dates
             </a>
-
-            <?php if (isset($_SESSION['level'], $_SESSION['category']) && $_SESSION['level'] === 'ADMINISTRATOR' && in_array($_SESSION['category'], ['SUPERADMIN']) ): ?>
+            <script src="/pulse/js/effectivity_date.js"></script>
+            <?php endif; ?> 
+            
+            <?php if (isset($_SESSION['level'], $_SESSION['category']) && $_SESSION['level'] === 'ADMINISTRATOR' && ($_SESSION['category'] === 'SUPERADMIN' || ($_SESSION['category'] === 'HR' && isset($_SESSION['permission']) && $_SESSION['permission'] >= 4)) ): ?>
             <a
               id="admin-appointments-link"
               href="#"
@@ -682,8 +696,10 @@ if ($user) {
               </svg>
               Appointments
             </a>
-            <?php endif; ?>
-
+            <script src="/pulse/js/appointments.js"></script>
+            <?php endif; ?> 
+            
+            <?php if (isset($_SESSION['level'], $_SESSION['category']) && $_SESSION['level'] === 'ADMINISTRATOR' && ($_SESSION['category'] === 'SUPERADMIN' || ($_SESSION['category'] === 'HR' && isset($_SESSION['permission']) && $_SESSION['permission'] >= 4)) ): ?>
             <a
               id="admin-promote-link"
               href="#"
@@ -693,8 +709,11 @@ if ($user) {
                   <path d="M5 12l7-7 7 7"/>
                 </svg>
               Promote Employee
-            </a>
-
+            </a>    
+            <script src="/pulse/js/promote_employee.js"></script>
+            <?php endif; ?>       
+            
+            <?php if (isset($_SESSION['level'], $_SESSION['category']) && $_SESSION['level'] === 'ADMINISTRATOR' && ($_SESSION['category'] === 'SUPERADMIN' || ($_SESSION['category'] === 'HR' && isset($_SESSION['permission']) && $_SESSION['permission'] >= 4)) ): ?>
             <a
               id="admin-separate-link"
               href="#"
@@ -703,24 +722,31 @@ if ($user) {
                   <circle cx="12" cy="12" r="10"/>
                   <line x1="8" y1="12" x2="16" y2="12"/>
                 </svg>
-
               Remove Employee
             </a>
-
+            <script src="/pulse/js/separate_employee.js"></script>
             <div class="py-1 flex items-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200  dark:text-white dark:after:border-neutral-600"></div>
+            <?php endif; ?>                      
 
+            
+            <?php if (isset($_SESSION['level'], $_SESSION['category']) && $_SESSION['level'] === 'ADMINISTRATOR' && ($_SESSION['category'] === 'SUPERADMIN' || ($_SESSION['category'] === 'HR' && isset($_SESSION['permission']) && $_SESSION['permission'] >= 3)) ): ?>
             <a
               id="admin-edit-credit-link"
               href="#"
               class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700">
-              <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="2" y="5" width="20" height="14" rx="2" ry="2"/>
-                  <line x1="2" y1="10" x2="22" y2="10"/>
-                  <line x1="6" y1="15" x2="10" y2="15"/>
-                </svg>
+              <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="5" width="20" height="14" rx="2" ry="2"/>
+                <line x1="2" y1="10" x2="22" y2="10"/>
+                <line x1="6" y1="15" x2="10" y2="15"/>
+              </svg>
               Edit Leave Credits
             </a>
-
+            <script src="/pulse/js/edit_credit.js"></script>
+            <?php endif; ?>       
+            
+            <?php if (isset($_SESSION['level'], $_SESSION['category']) && $_SESSION['level'] === 'ADMINISTRATOR' && ($_SESSION['category'] === 'SUPERADMIN' || ($_SESSION['category'] === 'HR' && isset($_SESSION['permission']) && $_SESSION['permission'] >= 3)) ): ?>
             <a
               id="admin-set-approvers-link"
               href="#"
@@ -731,9 +757,14 @@ if ($user) {
                 </svg>
               Set Approvers
             </a>
+            <script src="/pulse/js/set_approvers.js"></script>  
+            <?php endif; ?>        
 
+            
+            <?php if (isset($_SESSION['level'], $_SESSION['category']) && $_SESSION['level'] === 'ADMINISTRATOR' && (in_array($_SESSION['category'], ['AAO', 'SUPERADMIN']) || ($_SESSION['category'] === 'HR' && isset($_SESSION['permission']) && $_SESSION['permission'] >= 2)) ): ?>
+            
             <div class="py-1 flex items-center text-sm text-gray-800 after:flex-1 after:border-t after:border-gray-200  dark:text-white dark:after:border-neutral-600"></div>
-
+            
             <a
               id="admin-reset-password-link"
               href="#"
@@ -745,13 +776,28 @@ if ($user) {
                   <circle cx="16" cy="12" r="1"/>
                 </svg>
               Reset Password
+            </a>  
+            <script src="/pulse/js/reset_password.js"></script>  
+            <?php endif; ?>
+
+            <?php if (isset($_SESSION['level'], $_SESSION['category']) && $_SESSION['level'] === 'ADMINISTRATOR' && (in_array($_SESSION['category'], ['AAO', 'SUPERADMIN']) || ($_SESSION['category'] === 'HR' && isset($_SESSION['permission']) && $_SESSION['permission'] >= 3)) ): ?>
+            <a
+              id="apply-leave-link"
+              href="#"
+              class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700">
+              <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" />
+              </svg>
+              Apply Leave
             </a>            
+            <script src="/pulse/js/apply_leave.js"></script>
+            <?php endif; ?>
 
             </div>
           </div>
         </div>
         <!-- End Dropdown -->         
-
+        <script src="/pulse/js/profile_image_upload.js"></script>     
         <?php endif; ?>
 
   </div>
@@ -1355,7 +1401,7 @@ if ($user) {
   <script src="https://cdn.jsdelivr.net/npm/preline/dist/index.js"></script>
 
 <script>
-// Standalone vanilla JS for tab switching and lazy loading (no Preline or external JS dependencies)
+
 document.addEventListener('DOMContentLoaded', function () {
   // Elements
   const tabSelect = document.getElementById('tab-select');
@@ -1452,27 +1498,15 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 
 
-
 <div id="modal-container"></div>
-<script src="/pulse/js/effectivity_date.js"></script>
-
 <div id="modal-promote-container"></div>
-<script src="/pulse/js/promote_employee.js"></script>
-
 <div id="modal-separate-container"></div>
-<script src="/pulse/js/separate_employee.js"></script>
-
 <div id="modal-edit-credit-container"></div>
-<script src="/pulse/js/edit_credit.js"></script>
-
 <div id="modal-reset-password-container"></div>
-<script src="/pulse/js/reset_password.js"></script>
-
 <div id="modal-set-approvers-container"></div>
-<script src="/pulse/js/set_approvers.js"></script>
-
 <div id="modal-appointments-container"></div>
-<script src="/pulse/js/appointments.js"></script>
+<div id="modal-apply-leave-container"></div>
+
 
 <!-- Profile Image Modal -->
 <div id="hs-subscription-with-image" class="hs-overlay hs-overlay-open:opacity-100 hs-overlay-open:duration-500 hidden size-full fixed top-0 start-0 z-80 opacity-0 overflow-x-hidden transition-all overflow-y-auto pointer-events-none" role="dialog" tabindex="-1" aria-labelledby="hs-subscription-with-image-label">
@@ -1522,9 +1556,6 @@ document.addEventListener('DOMContentLoaded', function () {
     </div>
   </div>
 </div>
-
-
-<script src="/pulse/js/profile_image_upload.js"></script>
 
 <script src="/pulse/js/secure.js"></script>
 
